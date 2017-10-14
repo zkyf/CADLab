@@ -92,7 +92,7 @@ public:
   BRepPP To();
   BRepHEP Next();
   BRepHEP Opposite();
-  BRepFP GetFace();
+  BRepFP Face();
 
   // set methods
   bool SetFrom(BRepPP);
@@ -106,9 +106,28 @@ class BRepFace       : public BRepVisualItem
 {
 private:
   BRepTP texture;
-  QVector<BRepRP> renderData;
+  QVector<BRepRenderData> renderData;
   BRepMP mesh;
   QVector3D normal;
+
+public:
+  // get methods
+  BRepTP Texture();
+  int RenderDataNum();
+  BRepRP RenderDate(int);
+  BRepMP Mesh();
+  QVector3D Normal();
+
+  // set methods
+  bool SetTexture(BRepTP);
+  bool AddRenderData(BRepRenderData);
+  bool RemoveRenderData(int);
+  bool SetMesh(BRepMP);
+  void SetNormal(QVector3D);
+};
+
+class BRepMesh       : public BRepVisualItem
+{
 };
 
 #endif // BREP_HPP
