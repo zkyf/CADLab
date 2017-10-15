@@ -128,6 +128,25 @@ public:
 
 class BRepMesh       : public BRepVisualItem
 {
+private:
+  QVector<BRepFace> faceLib;
+  QVector<BRepPoint> pointLib;
+  QVector<BRepHalfEdge> halfEdgeLib;
+  BRepOP object;
+  QString name;
+
+public:
+  // get methods
+  int FaceNum();
+  BRepFP Face(int);
+  int PointNum();
+  BRepPP Point(int);
+  int HalfEdgeNum();
+  BRepHEP HalfEdge(int);
+  BRepOP Object;
+  QString Name();
+
+  // set methods
 };
 
 #endif // BREP_HPP
