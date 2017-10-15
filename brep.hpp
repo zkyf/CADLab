@@ -147,6 +147,8 @@ public:
   QString Name();
 
   // set methods
+  bool AddFace(BRepFP);
+  bool RemoveFace(int);
 };
 
 #endif // BREP_HPP
