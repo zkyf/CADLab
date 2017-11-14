@@ -14,10 +14,6 @@
 #include <QVector3D>
 #include <QVector4D>
 
-#ifndef QSP
-#define QSP QSharedDataPointer
-#endif
-
 // list of all classes
 class BRepItem;
 class BRepVisualItem;
@@ -29,6 +25,10 @@ class BRepObject;
 class BRepTexture;
 class BRepRenderData;
 
+#ifndef QSP
+#define QSP QExplicitlySharedDataPointer
+#endif
+
 typedef QSP<BRepPoint>      BRepPP;
 typedef QSP<BRepHalfEdge>   BRepHEP;
 typedef QSP<BRepFace>       BRepFP;
@@ -36,6 +36,13 @@ typedef QSP<BRepMesh>       BRepMP;
 typedef QSP<BRepObject>     BRepOP;
 typedef QSP<BRepTexture>    BRepTP;
 typedef QSP<BRepRenderData> BRepRP;
+
+typedef QVector<BRepPoint>::iterator PointIte;
+typedef QVector<BRepHalfEdge>::iterator HEIte;
+typedef QVector<BRepFace>::iterator FaceIte;
+typedef QVector<BRepMesh>::iterator MeshIte;
+typedef QVector<BRepTexture>::iterator TextureIte;
+typedef QVector<BRepRenderData>::iterator RDIte;
 
 // class definiations
 class BRepItem       : public QSharedData
@@ -114,7 +121,7 @@ public:
   // get methods
   BRepTP Texture();
   int RenderDataNum();
-  BRepRP RenderDate(int);
+  BRepRP RenderData(int);
   BRepMP Mesh();
   QVector3D Normal();
 
@@ -147,8 +154,60 @@ public:
   QString Name();
 
   // set methods
-  bool AddFace(BRepFP);
+  bool AddFace(BRepFace);
   bool RemoveFace(int);
+  bool AddPoint(BRepPoint);
+  bool RemovePoint(int);
+  bool AddHalgEdge(BRepHalfEdge);
+  bool RemoveHalfEdge(int);
+  void SetName(QString);
+};
+
+class BRepObject     : public BRepVisualItem
+{
+private:
+  QString name;
+  QString folder;
+  QVector<BRepMesh> meshLib;
+  QVector<BRepTexture> textureLib;
+
+public:
+  // get methods
+  QString Name();
+  QString Folder();
+  int GetMeshNum();
+  BRepMP Mesh(int);
+  int TextureNum();
+  BRepTP Texture(int);
+
+  // set methods
+  bool AddMesh(BRepMesh);
+  bool RemoveMesh(int);
+  bool AddTexture(BRepTexture);
+  bool RemoveTexture(int);
+};
+
+class BRepTexture    : public BRepItem
+{
+public:
+  enum Type
+  {
+    None = -1,
+    Diffuse = 0,
+    Specular = 1,
+    Normal = 2
+  };
+
+  QString filePath;
+  Type type;
+};
+
+class BRepRenderData
+{
+public:
+  BRepHEP halfEdge;
+  QVector3D color;
+  QVector2D texcoord;
 };
 
 #endif // BREP_HPP
