@@ -164,12 +164,12 @@ void GLDisplayer::paintGL()
 	//qDebug() << "bind program and setUniformValue";
 	m_program->bind();
 
-	m_program->enableAttributeArray(0);
-	m_program->enableAttributeArray(1);
-	m_program->enableAttributeArray(2);
-	m_program->enableAttributeArray(3);
-	m_program->enableAttributeArray(4);
-	m_program->enableAttributeArray(5);
+  m_program->enableAttributeArray(0); // position
+  m_program->enableAttributeArray(1); // ambient
+  m_program->enableAttributeArray(2); // diffuse
+  m_program->enableAttributeArray(3); // specular
+  m_program->enableAttributeArray(4); // normal
+  m_program->enableAttributeArray(5); // texcoord
 	m_program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 17*sizeof(GLfloat));
 	m_program->setAttributeBuffer(1, GL_FLOAT, 3*sizeof(GLfloat), 3, 17*sizeof(GLfloat));
 	m_program->setAttributeBuffer(2, GL_FLOAT, 6*sizeof(GLfloat), 3, 17*sizeof(GLfloat));
@@ -196,11 +196,31 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("texture", 0);
 		m_program->setUniformValue("mode", mode);
 		//qDebug() << "Draw";
-		int paintedVerts = 0;
-    for(int i=0; i<renderFaceInfo.size(); i++)
+
+    for(int mid = 0; mid < obj->MeshNum(); mid++)
     {
-      glDrawArrays(GL_POLYGON, paintedVerts, renderFaceInfo[i].vertNum);
-      paintedVerts += renderFaceInfo[i].vertNum;
+      BRepMP mesh = obj->Mesh(mid);
+      for(int fid = 0; fid < mesh->FaceNum(); fid++)
+      {
+        BRepFP face = mesh->Face(fid);
+        // draw stencil buffer first
+        glEnable(GL_STENCIL_TEST);
+        for(int lid = 0; lid<face->LoopNum(); lid++)
+        {
+          BRepLP loop = face->Loop(lid);
+          QVector<float> vertData;
+          for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
+          {
+            BRepHEP he = loop->HalfEdge(heid);
+            QVector3D pos = he->From()->Position();
+            vertData.push_back(pos.x());
+            vertData.push_back(pos.y());
+            vertData.push_back(pos.z());
+
+
+          }
+        }
+      }
     }
 	}
 	m_program->release();
@@ -463,89 +483,5 @@ bool GLDisplayer::SetBRepModel(BRepOP object)
     return false;
   }
 
-  int meshNum = object->GetMeshNum();
-  QVector<float> vertData;
-  QVector<RenderFaceInfo> tempInfo;
-  for(int mid=0; mid<meshNum; mid++)
-  {
-    BRepMP mesh = object->Mesh(mid);
-    if(!mesh)
-    {
-      qDebug() << "Invalid Mesh @ mid=" << mid;
-      return false;
-    }
-    int faceNum = mesh->FaceNum();
-    for(int fid=0; fid<faceNum; fid++)
-    {
-      BRepFP face = mesh->Face(fid);
-      if(!face)
-      {
-        qDebug() << "Invalid Face @ fid=" << fid;
-        return false;
-      }
-
-      RenderFaceInfo info;
-      if(face->Texture())
-      {
-        info.texturePath = face->Texture()->filePath;
-      }
-
-      int rdNum = face->RenderDataNum();
-      info.vertNum = rdNum;
-      tempInfo.push_back(info);
-      for(int rdid=0; rdid<rdNum; rdid++)
-      {
-        BRepRP rd = face->RenderData(rdid);
-        if(!rd)
-        {
-          qDebug() << "Invalid RenderData @ rdid=" << rdid;
-          return false;
-        }
-        BRepHEP he = rd->halfEdge;
-        if(!he)
-        {
-          qDebug() << "Invalid HalfEdge @ rdid=" << rdid;
-          return false;
-        }
-        BRepPP point = he->From();
-        if(!point)
-        {
-          qDebug() << "Invalid Point @ rdid=" << rdid;
-          return false;
-        }
-        QVector3D pos = point->Position();
-        vertData.push_back(pos.x());
-        vertData.push_back(pos.y());
-        vertData.push_back(pos.z());
-
-        vertData.push_back(rd->color.x());
-        vertData.push_back(rd->color.y());
-        vertData.push_back(rd->color.z());
-
-        if(point->Normal().length()<0.5)
-        {
-          // vertex normal not specified
-          QVector3D normal = face->Normal();
-          vertData.push_back(normal.x());
-          vertData.push_back(normal.y());
-          vertData.push_back(normal.z());
-        }
-        else
-        {
-          // use vertex normal
-          QVector3D normal = point->Normal();
-          vertData.push_back(normal.x());
-          vertData.push_back(normal.y());
-          vertData.push_back(normal.z());
-        }
-      }
-    }
-  }
-
-  renderFaceInfo = tempInfo;
-  m_vertex.release();
-  m_vertex.create();
-  m_vertex.bind();
-  m_vertex.setUsagePattern(QOpenGLBuffer::StaticDraw);
-  m_vertex.allocate(vertData.constData(), vertData.count()*sizeof(GLfloat));
+  obj = object;
 }

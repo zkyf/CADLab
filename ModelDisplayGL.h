@@ -105,10 +105,8 @@ class GLDisplayer : public QOpenGLWidget, protected QOpenGLFunctions
 			bool persMode;
 			int mode;
 			QMatrix4x4 m_projection;
-			int faceCount;
 
-			QVector<QOpenGLTexture*> textures;
-      QVector<RenderFaceInfo> renderFaceInfo;
+      BRepOP obj;
 
 			Camera3D m_camera;
 			Transform3D m_transform;
