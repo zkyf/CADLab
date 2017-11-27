@@ -197,6 +197,11 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("mode", mode);
 		//qDebug() << "Draw";
 		int paintedVerts = 0;
+    for(int i=0; i<renderFaceInfo.size(); i++)
+    {
+      glDrawArrays(GL_POLYGON, paintedVerts, renderFaceInfo[i].vertNum);
+      paintedVerts += renderFaceInfo[i].vertNum;
+    }
 	}
 	m_program->release();
 	//qDebug() << "Released";
@@ -487,7 +492,7 @@ bool GLDisplayer::SetBRepModel(BRepOP object)
 
       int rdNum = face->RenderDataNum();
       info.vertNum = rdNum;
-      tempInfo.push_back(rdNum);
+      tempInfo.push_back(info);
       for(int rdid=0; rdid<rdNum; rdid++)
       {
         BRepRP rd = face->RenderData(rdid);
