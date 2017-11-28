@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
+#include <QWidget>
 #include <QPushButton>
 #include <QLabel>
 #include <QLayout>
@@ -9,7 +9,7 @@
 #include <QHBoxLayout>
 #include "ModelDisplayGL.h"
 
-class MainWindow : public QMainWindow
+class MainWindow : public QWidget
 {
   Q_OBJECT
 public:

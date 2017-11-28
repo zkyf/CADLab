@@ -2,7 +2,7 @@ DEFINES += _USE_MATH_DEFINES
 
 QT += core
 QT += gui
-QT += opengl
+#QT += opengl
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
@@ -18,12 +18,11 @@ SOURCES += main.cpp \
     camera3d.cpp \
     input.cpp \
     light.cpp \
-    main.cpp \
     ModelDisplayGL.cpp \
     transform3d.cpp \
     mainwindow.cpp
 
-LIBS += opengl32.lib
+#LIBS += opengl32.lib
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

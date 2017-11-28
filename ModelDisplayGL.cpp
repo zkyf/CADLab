@@ -197,27 +197,28 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("mode", mode);
 		//qDebug() << "Draw";
 
-    for(int mid = 0; mid < obj->MeshNum(); mid++)
+    if(obj.data() == nullptr)
     {
-      BRepMP mesh = obj->Mesh(mid);
-      for(int fid = 0; fid < mesh->FaceNum(); fid++)
+      for(int mid = 0; mid < obj->MeshNum(); mid++)
       {
-        BRepFP face = mesh->Face(fid);
-        // draw stencil buffer first
-        glEnable(GL_STENCIL_TEST);
-        for(int lid = 0; lid<face->LoopNum(); lid++)
+        BRepMP mesh = obj->Mesh(mid);
+        for(int fid = 0; fid < mesh->FaceNum(); fid++)
         {
-          BRepLP loop = face->Loop(lid);
-          QVector<float> vertData;
-          for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
+          BRepFP face = mesh->Face(fid);
+          // draw stencil buffer first
+          glEnable(GL_STENCIL_TEST);
+          for(int lid = 0; lid<face->LoopNum(); lid++)
           {
-            BRepHEP he = loop->HalfEdge(heid);
-            QVector3D pos = he->From()->Position();
-            vertData.push_back(pos.x());
-            vertData.push_back(pos.y());
-            vertData.push_back(pos.z());
-
-
+            BRepLP loop = face->Loop(lid);
+            QVector<float> vertData;
+            for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
+            {
+              BRepHEP he = loop->HalfEdge(heid);
+              QVector3D pos = he->From()->Position();
+              vertData.push_back(pos.x());
+              vertData.push_back(pos.y());
+              vertData.push_back(pos.z());
+            }
           }
         }
       }

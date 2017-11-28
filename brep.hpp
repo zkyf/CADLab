@@ -9,6 +9,7 @@
 
 #include <QSharedData>
 #include <QSharedDataPointer>
+#include <QString>
 #include <QVector>
 #include <QVector2D>
 #include <QVector3D>
@@ -55,6 +56,11 @@ public:
 
 public:
   BRepItem(bool _valid=false) : valid(_valid) {}
+
+  BRepItem operator=(BRepItem b)
+  {
+    valid = b.valid;
+  }
 };
 
 class BRepVisualItem : public BRepItem
@@ -123,7 +129,7 @@ public:
   BRepHEP HalfEdge(int index)
   {
     if(index>=0 && index<hes.size()) return hes[index];
-    else return nullptr;
+    else return BRepHEP(nullptr);
   }
   int AddHalfEdge(BRepHEP he) { hes.push_back(he); return hes.size()-1;}
   bool RemoveHalfEdge(int index)
@@ -162,7 +168,7 @@ public:
 
   // set methods
   bool SetTexture(BRepTP t) { texture = t; }
-  int AddLoop(BRepLoop loop) { loops.push_back(loop); return loops.size()-1;}
+  int AddLoop(BRepLP loop) { loops.push_back(loop); return loops.size()-1;}
   bool RemoveLoop(int index) { loops.remove(index); }
 //  bool AddRenderData(BRepRenderData r) { renderData.push_back(r); }
 //  bool RemoveRenderData(int index) { renderData.remove(index); }
@@ -176,17 +182,20 @@ private:
   QVector<BRepFace> faceLib;
   QVector<BRepPoint> pointLib;
   QVector<BRepHalfEdge> halfEdgeLib;
+  QVector<BRepLoop> loopLib;
   BRepOP object;
   QString name;
 
 public:
   // get methods
   int FaceNum() { return faceLib.size(); }
-  BRepFP Face(int index) { return &faceLib[index]; }
+  BRepFP Face(int index) { return BRepFP(&faceLib[index]); }
   int PointNum() { return pointLib.size(); }
-  BRepPP Point(int index) { return &pointLib[index]; }
+  BRepPP Point(int index) { return BRepPP(&pointLib[index]); }
   int HalfEdgeNum() { return halfEdgeLib.size(); }
-  BRepHEP HalfEdge(int index) { return &halfEdgeLib[index]; }
+  BRepHEP HalfEdge(int index) { return BRepHEP(&halfEdgeLib[index]); }
+  int LoopNum() { return loopLib.size(); }
+  BRepLP Loop(int index) { return BRepLP(&loopLib[index]); }
   BRepOP Object() { return object; }
   QString Name() { return name; }
 
@@ -213,14 +222,14 @@ public:
   QString Name() { return name; }
   QString Folder() { return folder; }
   int MeshNum() { return meshLib.size(); }
-  BRepMP Mesh(int index) { return meshLib.size(); }
+  BRepMP Mesh(int index) { return BRepMP(&meshLib[index]); }
   int TextureNum() { return textureLib.size(); }
-  BRepTP Texture(int index) { return &textureLib[index]; }
+  BRepTP Texture(int index) { return BRepTP(&textureLib[index]); }
 
   // set methods
   bool AddMesh(BRepMesh m) { meshLib.push_back(m); }
   bool RemoveMesh(int index) { meshLib.remove(index); }
-  bool AddTexture(BRepTexture t) { textureLib.push_back(t); }
+//  bool AddTexture(BRepTexture text) { textureLib.push_back(text); }
   bool RemoveTexture(int index) { textureLib.remove(index); }
 };
 
