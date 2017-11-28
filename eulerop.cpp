@@ -5,4 +5,9 @@ void EulerOp::MVFS(BRepOP *object, QVector3D pos)
   if(object == nullptr) return;
   *object = new BRepObject;
   BRepOP o = *object;
+  BRepMesh mesh;
+  BRepPoint point;
+  point.SetPosition(pos);
+  mesh.AddPoint(point);
+
 }

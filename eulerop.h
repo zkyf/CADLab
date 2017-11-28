@@ -6,7 +6,7 @@
 class EulerOp
 {
 public:
-  static void MVFS(BRepOP *object);
+  static void MVFS(BRepOP *object, QVector3D pos);
   static void MEV(BRepMP mesh, BRepPP point);
 };
 
