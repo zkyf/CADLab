@@ -200,12 +200,42 @@ public:
   QString Name() { return name; }
 
   // set methods
-  bool AddFace(BRepFace f) { faceLib.push_back(f); }
+  int AddFace(BRepFace f) { faceLib.push_back(f); return faceLib.size()-1; }
+  BRepFP AddFace()
+  {
+    BRepFace face;
+    faceLib.push_back(face);
+    return BRepFP(&faceLib[faceLib.size()-1]);
+  }
   bool RemoveFace(int index) { faceLib.remove(index); }
-  bool AddPoint(BRepPoint p) { pointLib.push_back(p); }
+
+  int AddPoint(BRepPoint p) { pointLib.push_back(p); return pointLib.size()-1; }
+  BRepPP AddPoint()
+  {
+    BRepPoint p;
+    pointLib.push_back(p);
+    return BRepPP(&pointLib[pointLib.size()-1]);
+  }
   bool RemovePoint(int index) { pointLib.remove(index); }
-  bool AddHalgEdge(BRepHalfEdge e) { halfEdgeLib.push_back(e); }
+
+  int AddHalfEdge(BRepHalfEdge e) { halfEdgeLib.push_back(e); return halfEdgeLib.size()-1; }
+  BRepHEP AddHalfEdge()
+  {
+    BRepHEP he;
+    halfEdgeLib.push_back(he);
+    return BRepHEP(&halfEdgeLib[halfEdgeLib.size()-1]);
+  }
   bool RemoveHalfEdge(int index) { halfEdgeLib.remove(index); }
+
+  int AddLoop(BRepLoop l) { loopLib.push_back(l); return loopLib.size()-1; }
+  BRepLP AddLoop()
+  {
+    BRepLoop l;
+    loopLib.push_back(l);
+    return BRepLP(&loopLib[loopLib.size()-1]);
+  }
+  bool RemoveLoop(int index) { halfEdgeLib.remove(index); }
+
   void SetName(QString n) { name = n; }
 };
 
@@ -227,7 +257,7 @@ public:
   BRepTP Texture(int index) { return BRepTP(&textureLib[index]); }
 
   // set methods
-  bool AddMesh(BRepMesh m) { meshLib.push_back(m); }
+  int AddMesh(BRepMesh m) { meshLib.push_back(m); return meshLib.size()-1; }
   bool RemoveMesh(int index) { meshLib.remove(index); }
 //  bool AddTexture(BRepTexture text) { textureLib.push_back(text); }
   bool RemoveTexture(int index) { textureLib.remove(index); }
