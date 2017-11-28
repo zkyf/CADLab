@@ -207,6 +207,8 @@ void GLDisplayer::paintGL()
           BRepFP face = mesh->Face(fid);
           // draw stencil buffer first
           glEnable(GL_STENCIL_TEST);
+          glStencilFunc(GL_NEVER, 0, 1);
+          glStencilOp(GL_INVERT, GL_INVERT, GL_INVERT);
           for(int lid = 0; lid<face->LoopNum(); lid++)
           {
             BRepLP loop = face->Loop(lid);
@@ -218,7 +220,69 @@ void GLDisplayer::paintGL()
               vertData.push_back(pos.x());
               vertData.push_back(pos.y());
               vertData.push_back(pos.z());
+
+              // ambient
+              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+
+              // diffuse
+              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+
+              // specular
+              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+
+              // normal
+              QVector3D normal = face->Normal();
+              vertData.push_back(normal.x()); vertData.push_back(normal.y()); vertData.push_back(normal.z());
+
+              // texcoords
+              vertData.push_back(0.0); vertData.push_back(0.0);
             }
+
+            m_vertex.release();
+            m_vertex.create();
+            m_vertex.allocate(vertData, vertData.count());
+            m_vertex.bind();
+            glDrawArrays(GL_POLYGON, 0, vertData.count());
+          }
+
+          glStencilFunc(GL_EQUAL, 1, 1);
+          glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+          for(int lid = 0; lid<face->LoopNum(); lid++)
+          {
+            BRepLP loop = face->Loop(lid);
+            if(loop->Dir()) continue;
+            QVector<float> vertData;
+            for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
+            {
+              BRepHEP he = loop->HalfEdge(heid);
+              QVector3D pos = he->From()->Position();
+              vertData.push_back(pos.x());
+              vertData.push_back(pos.y());
+              vertData.push_back(pos.z());
+
+              // ambient
+              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+
+              // diffuse
+              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+
+              // specular
+              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+
+              // normal
+              QVector3D normal = face->Normal();
+              vertData.push_back(normal.x()); vertData.push_back(normal.y()); vertData.push_back(normal.z());
+
+              // texcoords
+              vertData.push_back(0.0); vertData.push_back(0.0);
+            }
+
+            m_vertex.release();
+            m_vertex.create();
+            m_vertex.allocate(vertData, vertData.count());
+            m_vertex.bind();
+            glDrawArrays(GL_POLYGON, 0, vertData.count());
           }
         }
       }

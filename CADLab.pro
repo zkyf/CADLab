@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     light.cpp \
     ModelDisplayGL.cpp \
     transform3d.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    eulerop.cpp
 
 #LIBS += opengl32.lib
 
@@ -42,7 +43,8 @@ HEADERS += \
     light.h \
     ModelDisplayGL.h \
     transform3d.h \
-    mainwindow.h
+    mainwindow.h \
+    eulerop.h
 
 RESOURCES += \
     resources.qrc
