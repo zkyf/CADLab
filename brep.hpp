@@ -10,10 +10,21 @@
 #include <QSharedData>
 #include <QSharedDataPointer>
 #include <QString>
-#include <QVector>
+#include <QLinkedList>
 #include <QVector2D>
 #include <QVector3D>
 #include <QVector4D>
+
+template<class T> class _QLinkedList : public QLinkedList<T>
+{
+public:
+  T& operator[](const int index)
+  {
+    int c=0;
+    for(iterator i=begin(); c<index; i++, c++);
+    return *i;
+  }
+};
 
 // list of all classes
 class BRepItem;
@@ -42,14 +53,14 @@ typedef QSP<BRepObject>     BRepOP;
 typedef QSP<BRepTexture>    BRepTP;
 typedef QSP<BRepRenderData> BRepRP;
 
-typedef QVector<BRepPoint>::iterator      PointIte;
-typedef QVector<BRepEdge>::iterator       EdgeIte;
-typedef QVector<BRepHalfEdge>::iterator   HEIte;
-typedef QVector<BRepLoop>::iterator       LoopIte;
-typedef QVector<BRepFace>::iterator       FaceIte;
-typedef QVector<BRepMesh>::iterator       MeshIte;
-typedef QVector<BRepTexture>::iterator    TextureIte;
-typedef QVector<BRepRenderData>::iterator RDIte;
+typedef _QLinkedList<BRepPoint>::iterator      PointIte;
+typedef _QLinkedList<BRepEdge>::iterator       EdgeIte;
+typedef _QLinkedList<BRepHalfEdge>::iterator   HEIte;
+typedef _QLinkedList<BRepLoop>::iterator       LoopIte;
+typedef _QLinkedList<BRepFace>::iterator       FaceIte;
+typedef _QLinkedList<BRepMesh>::iterator       MeshIte;
+typedef _QLinkedList<BRepTexture>::iterator    TextureIte;
+typedef _QLinkedList<BRepRenderData>::iterator RDIte;
 
 // class definiations
 class BRepItem       : public QSharedData
@@ -78,22 +89,22 @@ public:
 class BRepPoint      : public BRepItem
 {
 private:
-  QVector3D position;
-  QVector3D normal;
-  QVector<BRepHEP> fanOutList;
+  _QLinkedList3D position;
+  _QLinkedList3D normal;
+  _QLinkedList<BRepHEP> fanOutList;
 
 public:
   // get methods
-  QVector3D Position() { return position; }
-  QVector3D Normal() { return normal; }
+  _QLinkedList3D Position() { return position; }
+  _QLinkedList3D Normal() { return normal; }
   int FanOutNum() { return fanOutList.size(); }
   BRepHEP FanOutEdge(int index) { return fanOutList[index]; }
 
   // set methods
-  void SetPosition(QVector3D pos) { position = pos; }
-  void SetNormal(QVector3D n) { normal = n; }
+  void SetPosition(_QLinkedList3D pos) { position = pos; }
+  void SetNormal(_QLinkedList3D n) { normal = n; }
   int AddFanOutEdge(BRepHEP edge) { fanOutList.push_back(edge); return fanOutList.size()-1;}
-  bool RemoveFanOutEdge(int index) { fanOutList.remove(index); }
+  bool RemoveFanOutEdge(BRepHEP index) { fanOutList.removeOne(index); }
 };
 
 class BRepEdge       : public BRepItem
@@ -113,6 +124,7 @@ class BRepHalfEdge   : public BRepItem
 private:
   BRepPP from;
   BRepPP to;
+  BRepHEP prev;
   BRepHEP next;
   BRepHEP opposite;
   BRepFP face;
@@ -121,22 +133,24 @@ public:
   // get methods
   BRepPP From() { return from; }
   BRepPP To() { return to; }
+  BRepHEP Prev() { return prev; }
   BRepHEP Next() { return next; }
   BRepHEP Opposite() { return opposite; }
   BRepFP Face() { return face; }
 
   // set methods
-  bool SetFrom(BRepPP p) { from = p; }
-  bool SetTo(BRepPP p)  { to = p; }
-  bool SetNext(BRepHEP e) { next = e; }
-  bool SetOpposite(BRepHEP e) { opposite = e; }
-  bool SetFace(BRepFP f) { face = f; }
+  void SetFrom(BRepPP p) { from = p; }
+  void SetTo(BRepPP p)  { to = p; }
+  void SetPrev(BRepHEP e) { prev = e; }
+  void SetNext(BRepHEP e) { next = e; }
+  void SetOpposite(BRepHEP e) { opposite = e; }
+  void SetFace(BRepFP f) { face = f; }
 };
 
 class BRepLoop       : public BRepVisualItem
 {
 private:
-  QVector<BRepHEP> hes;
+  _QLinkedList<BRepHEP> hes;
   bool dir;
 
 public:
@@ -147,15 +161,9 @@ public:
     else return BRepHEP(nullptr);
   }
   int AddHalfEdge(BRepHEP he) { hes.push_back(he); return hes.size()-1;}
-  bool RemoveHalfEdge(int index)
+  bool RemoveHalfEdge(BRepHEP index)
   {
-    if(index>=0 && index<hes.size())
-    {
-      hes.remove(index);
-      return true;
-    }
-    else
-      return false;
+    hes.removeOne(index);
   }
   void Clear() { hes.clear(); }
   void SetDir(bool d) { dir = d; }
@@ -166,7 +174,7 @@ public:
     for(int i=0; i<hes.size(); i++)
     {
       if(hes[i]->From()==v)
-        return ture;
+        return true;
     }
     return false;
   }
@@ -182,11 +190,11 @@ public:
 
   BRepHEP HEFromV(BRepPP v)
   {
-    for(int i=0; i<hes.size(); i++)
+    for(HEIte i = hes.begin(); i!=hes.end(); i++)
     {
-      if(hes[i]->From == v)
+      if(*i->From()==v)
       {
-        return hes[i];
+        return *i;
       }
     }
     return BRepHEP(nullptr);
@@ -194,11 +202,11 @@ public:
 
   BRepHEP HEToV(BRepPP v)
   {
-    for(int i=0; i<hes.size(); i++)
+    for(HEIte i = hes.begin(); i!=hes.end(); i++)
     {
-      if(hes[i]->To() == v)
+      if(*i->To()==v)
       {
-        return hes[i];
+        return *i;
       }
     }
     return BRepHEP(nullptr);
@@ -209,10 +217,10 @@ class BRepFace       : public BRepVisualItem
 {
 private:
   BRepTP texture;
-//  QVector<BRepRenderData> renderData;
-  QVector<BRepLP> loops;
+//  _QLinkedList<BRepRenderData> renderData;
+  _QLinkedList<BRepLP> loops;
   BRepMP mesh;
-  QVector3D normal;
+  _QLinkedList3D normal;
 
 public:
   // get methods
@@ -222,25 +230,25 @@ public:
 //  int RenderDataNum() { return renderData.size(); }
 //  BRepRP RenderData(int index) { return renderData[index]; }
   BRepMP Mesh() { return mesh; }
-  QVector3D Normal() { return normal; }
+  _QLinkedList3D Normal() { return normal; }
 
   // set methods
   bool SetTexture(BRepTP t) { texture = t; }
   int AddLoop(BRepLP loop) { loops.push_back(loop); return loops.size()-1;}
-  bool RemoveLoop(int index) { loops.remove(index); }
+  bool RemoveLoop(BRepLP index) { loops.removeOne(index); }
 //  bool AddRenderData(BRepRenderData r) { renderData.push_back(r); }
-//  bool RemoveRenderData(int index) { renderData.remove(index); }
+//  bool RemoveRenderData(int index) { renderData.removeOne(index); }
   bool SetMesh(BRepMP m) { mesh = m; }
-  void SetNormal(QVector3D n) { normal = n; }
+  void SetNormal(_QLinkedList3D n) { normal = n; }
 };
 
 class BRepMesh       : public BRepVisualItem
 {
 private:
-  QVector<BRepFace> faceLib;
-  QVector<BRepPoint> pointLib;
-  QVector<BRepHalfEdge> halfEdgeLib;
-  QVector<BRepLoop> loopLib;
+  _QLinkedList<BRepFace> faceLib;
+  _QLinkedList<BRepPoint> pointLib;
+  _QLinkedList<BRepHalfEdge> halfEdgeLib;
+  _QLinkedList<BRepLoop> loopLib;
   BRepOP object;
   QString name;
 
@@ -265,7 +273,7 @@ public:
     faceLib.push_back(face);
     return BRepFP(&faceLib[faceLib.size()-1]);
   }
-  bool RemoveFace(int index) { faceLib.remove(index); }
+  bool RemoveFace(BRepFP index) { faceLib.removeOne(index); }
 
   int AddPoint(BRepPoint p) { pointLib.push_back(p); return pointLib.size()-1; }
   BRepPP AddPoint()
@@ -274,16 +282,16 @@ public:
     pointLib.push_back(p);
     return BRepPP(&pointLib[pointLib.size()-1]);
   }
-  bool RemovePoint(int index) { pointLib.remove(index); }
+  bool RemovePoint(BRepPP index) { pointLib.removeOne(index); }
 
   int AddHalfEdge(BRepHalfEdge e) { halfEdgeLib.push_back(e); return halfEdgeLib.size()-1; }
   BRepHEP AddHalfEdge()
   {
-    BRepHEP he;
+    BRepHalfEdge he;
     halfEdgeLib.push_back(he);
     return BRepHEP(&halfEdgeLib[halfEdgeLib.size()-1]);
   }
-  bool RemoveHalfEdge(int index) { halfEdgeLib.remove(index); }
+  bool RemoveHalfEdge(BRepHEP index) { halfEdgeLib.removeOne(index); }
 
   int AddLoop(BRepLoop l) { loopLib.push_back(l); return loopLib.size()-1; }
   BRepLP AddLoop()
@@ -292,7 +300,7 @@ public:
     loopLib.push_back(l);
     return BRepLP(&loopLib[loopLib.size()-1]);
   }
-  bool RemoveLoop(int index) { halfEdgeLib.remove(index); }
+  bool RemoveLoop(BRepLP index) { halfEdgeLib.removeOne(index); }
 
   void SetName(QString n) { name = n; }
 };
@@ -302,8 +310,8 @@ class BRepObject     : public BRepVisualItem
 private:
   QString name;
   QString folder;
-  QVector<BRepMesh> meshLib;
-  QVector<BRepTexture> textureLib;
+  _QLinkedList<BRepMesh> meshLib;
+  _QLinkedList<BRepTexture> textureLib;
 
 public:
   // get methods
@@ -316,9 +324,9 @@ public:
 
   // set methods
   int AddMesh(BRepMesh m) { meshLib.push_back(m); return meshLib.size()-1; }
-  bool RemoveMesh(int index) { meshLib.remove(index); }
+  bool RemoveMesh(BRepMP index) { meshLib.remove(index); }
 //  bool AddTexture(BRepTexture text) { textureLib.push_back(text); }
-  bool RemoveTexture(int index) { textureLib.remove(index); }
+  bool RemoveTexture(BRepTP index) { textureLib.remove(index); }
 };
 
 class BRepTexture    : public BRepItem
@@ -340,8 +348,8 @@ class BRepRenderData : public QSharedData
 {
 public:
   BRepHEP halfEdge;
-  QVector3D color;
-  QVector2D texcoord;
+  _QLinkedList3D color;
+  _QLinkedList2D texcoord;
   bool dir;
 };
 
