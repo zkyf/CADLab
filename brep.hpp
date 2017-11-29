@@ -19,6 +19,7 @@
 class BRepItem;
 class BRepVisualItem;
 class BRepPoint;
+class BRepEdge;
 class BRepHalfEdge;
 class BRepLoop;
 class BRepFace;
@@ -32,6 +33,7 @@ class BRepRenderData;
 #endif
 
 typedef QSP<BRepPoint>      BRepPP;
+typedef QSP<BRepEdge>       BRepEP;
 typedef QSP<BRepHalfEdge>   BRepHEP;
 typedef QSP<BRepLoop>       BRepLP;
 typedef QSP<BRepFace>       BRepFP;
@@ -41,6 +43,7 @@ typedef QSP<BRepTexture>    BRepTP;
 typedef QSP<BRepRenderData> BRepRP;
 
 typedef QVector<BRepPoint>::iterator      PointIte;
+typedef QVector<BRepEdge>::iterator       EdgeIte;
 typedef QVector<BRepHalfEdge>::iterator   HEIte;
 typedef QVector<BRepLoop>::iterator       LoopIte;
 typedef QVector<BRepFace>::iterator       FaceIte;
@@ -91,6 +94,18 @@ public:
   void SetNormal(QVector3D n) { normal = n; }
   int AddFanOutEdge(BRepHEP edge) { fanOutList.push_back(edge); return fanOutList.size()-1;}
   bool RemoveFanOutEdge(int index) { fanOutList.remove(index); }
+};
+
+class BRepEdge       : public BRepItem
+{
+private:
+  BRepMP mesh;
+  BRepHEP he1, he2;
+
+public:
+  BRepMP Mesh() { return mesh; }
+  void SetMesh(BRepMP m) { mesh=m; }
+  BRepHEP He1() { return he1; }
 };
 
 class BRepHalfEdge   : public BRepItem
@@ -145,6 +160,49 @@ public:
   void Clear() { hes.clear(); }
   void SetDir(bool d) { dir = d; }
   bool Dir() { return dir; }
+
+  bool VOnLoop(BRepPP v)
+  {
+    for(int i=0; i<hes.size(); i++)
+    {
+      if(hes[i]->From()==v)
+        return ture;
+    }
+    return false;
+  }
+  bool HEOnLoop(BRepHEP he)
+  {
+    for(int i=0; i<hes.size(); i++)
+    {
+      if(hes[i]==he)
+        return true;
+    }
+    return false;
+  }
+
+  BRepHEP HEFromV(BRepPP v)
+  {
+    for(int i=0; i<hes.size(); i++)
+    {
+      if(hes[i]->From == v)
+      {
+        return hes[i];
+      }
+    }
+    return BRepHEP(nullptr);
+  }
+
+  BRepHEP HEToV(BRepPP v)
+  {
+    for(int i=0; i<hes.size(); i++)
+    {
+      if(hes[i]->To() == v)
+      {
+        return hes[i];
+      }
+    }
+    return BRepHEP(nullptr);
+  }
 };
 
 class BRepFace       : public BRepVisualItem

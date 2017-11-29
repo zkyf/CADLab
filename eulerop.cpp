@@ -65,5 +65,28 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
 
 BRepLP EulerOp::MEL(BRepMP mesh, BRepLP loop, BRepPP v1, BRepPP v2)
 {
+  BRepLP l2;
 
+  BRepHEP heFromv1 = loop->HEFromV(v1);
+  BRepHEP heTov1 = loop->HEToV(v1);
+
+  BRepHEP heFromv2 = loop->HEFromV(v2);
+  BRepHEP heTov2 = loop->HEToV(v2);
+
+  BRepHEP hev1v2 = mesh->AddHalfEdge();
+  BRepHEP hev2v1 = mesh->AddHalfEdge();
+
+  heTov1->SetNext(hev1v2);
+  hev1v2->SetFrom(v1);
+  hev1v2->SetTo(v2);
+  hev1v2->SetOpposite(hev2v1);
+  hev1v2->SetNext(heFromv2);
+
+  heTov2->SetNext(hev2v1);
+  hev2v1->SetFrom(v2);
+  hev2v1->SetTo(v1);
+  hev2v1->SetOpposite(hev1v2);
+  hev2v1->SetNext(heFromv1);
+
+  loop->Clear();
 }
