@@ -8,7 +8,8 @@
 
 int wheelDelta = 0;
 
-GLDisplayer::GLDisplayer()
+GLDisplayer::GLDisplayer() :
+  obj(nullptr)
 {
 	Reset();
 	mode = DefaultMode;
@@ -195,15 +196,42 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("cameraPos", m_camera.translation());
 		m_program->setUniformValue("texture", 0);
 		m_program->setUniformValue("mode", mode);
-		//qDebug() << "Draw";
+    //
 
-    if(obj.data() == nullptr)
+    static bool init = true;
+    if(obj != nullptr)
     {
+      if(init)
+      {
+        BRepMP mesh = obj->Mesh(0);
+        for(int fid=0; fid<mesh->FaceNum(); fid++)
+        {
+          BRepFP face = mesh->Face(fid);
+          init = false;
+          qDebug() << "==================";
+          qDebug() << "face num = " << mesh->FaceNum() << " #" << fid;
+          qDebug() << "face half edges: ";
+          for(int i=0; i<face->LoopNum(); i++)
+          {
+            qDebug() << "  loop#" << i;
+            BRepLP l = face->Loop(i);
+            for(int j=0; j<l->HalfEdgeNum(); j++)
+            {
+              BRepHEP he = l->HalfEdge(j);
+              qDebug() << "    he#" << j << "from " << he->From()->Position() << " to " << he->To()->Position();
+            }
+          }
+        }
+      }
+//      qDebug() << "Draw";
       for(int mid = 0; mid < obj->MeshNum(); mid++)
       {
+//        qDebug() << "";
+//        qDebug() << "mid=" << mid;
         BRepMP mesh = obj->Mesh(mid);
         for(int fid = 0; fid < mesh->FaceNum(); fid++)
         {
+//          qDebug() << "fid=" << fid;
           BRepFP face = mesh->Face(fid);
           // draw stencil buffer first
           glEnable(GL_STENCIL_TEST);
@@ -222,13 +250,13 @@ void GLDisplayer::paintGL()
               vertData.push_back(pos.z());
 
               // ambient
-              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
 
               // diffuse
-              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
 
               // specular
-              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
 
               // normal
               QVector3D normal = face->Normal();
@@ -240,21 +268,22 @@ void GLDisplayer::paintGL()
 
             m_vertex.release();
             m_vertex.create();
-            m_vertex.allocate(vertData, vertData.count());
+            m_vertex.allocate(vertData.data(), vertData.count());
             m_vertex.bind();
             glDrawArrays(GL_POLYGON, 0, vertData.count());
           }
 
-          glStencilFunc(GL_EQUAL, 1, 1);
+          glStencilFunc(GL_ALWAYS, 1, 1);
           glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
           for(int lid = 0; lid<face->LoopNum(); lid++)
           {
             BRepLP loop = face->Loop(lid);
-            if(loop->Dir()) continue;
+//            qDebug() << "lid=" << lid << loop->HalfEdgeNum();
             QVector<float> vertData;
             for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
             {
+//              qDebug() << "heid=" << heid;
               BRepHEP he = loop->HalfEdge(heid);
               QVector3D pos = he->From()->Position();
               vertData.push_back(pos.x());
@@ -262,13 +291,13 @@ void GLDisplayer::paintGL()
               vertData.push_back(pos.z());
 
               // ambient
-              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
 
               // diffuse
-              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
 
               // specular
-              vertData.push_back(1.0); vertData.push_back(1.0); vertData.push_back(1.0);
+              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
 
               // normal
               QVector3D normal = face->Normal();
@@ -278,11 +307,13 @@ void GLDisplayer::paintGL()
               vertData.push_back(0.0); vertData.push_back(0.0);
             }
 
+//            qDebug() << "loop->HalfEdgeNum() = " << loop->HalfEdgeNum();
             m_vertex.release();
             m_vertex.create();
-            m_vertex.allocate(vertData, vertData.count());
             m_vertex.bind();
-            glDrawArrays(GL_POLYGON, 0, vertData.count());
+            m_vertex.setUsagePattern(QOpenGLBuffer::StaticDraw);
+            m_vertex.allocate(vertData.constData(), vertData.count()*sizeof(GLfloat));
+            glDrawArrays(GL_POLYGON, 0, loop->HalfEdgeNum());
           }
         }
       }
@@ -308,8 +339,6 @@ void GLDisplayer::Reset()
 
 void GLDisplayer::update()
 {
-	const float cMinRo = 0.0;
-	const float cMaxRo = 5.0;
 	// Update input
 	Input::update();
 
@@ -317,7 +346,7 @@ void GLDisplayer::update()
 	float transSpeed = 0.01f;
 	if (Input::keyPressed(Qt::Key_Shift))
 	{
-		transSpeed = 0.005f;
+    transSpeed = 0.05f;
 		rotSpeed = 0.005f;
 	}
 
@@ -328,72 +357,39 @@ void GLDisplayer::update()
 		// Handle rotations
 //		camera.setX(camera.x()-rotSpeed * Input::mouseDelta().x());
 //		camera.setY(camera.y()+rotSpeed * Input::mouseDelta().y());
-		m_transform.rotate(Input::mouseDelta().x()*rotSpeed, 0, 1, 0);
-		m_transform.rotate(Input::mouseDelta().y()*rotSpeed, 1, 0, 0);
+    m_camera.rotate(Input::mouseDelta().x()*rotSpeed, 0, 1, 0);
+    m_camera.rotate(Input::mouseDelta().y()*rotSpeed, 1, 0, 0);
 	}
 
 	// Handle translations
 	QVector3D translation;
 	if (Input::keyPressed(Qt::Key_W))
 	{
-		translation = QVector3D(0, 0, -transSpeed);
+    translation = transSpeed*m_camera.forward();
 	}
 	if (Input::keyPressed(Qt::Key_S))
 	{
-		translation = QVector3D(0, 0, transSpeed);
+    translation = -transSpeed*m_camera.forward();
 	}
-	translation-=QVector3D(0, 0, wheelDelta*transSpeed/10);
-	wheelDelta=0;
-
-//	camera=camera+translation;
-
 	if (Input::keyPressed(Qt::Key_A))
 	{
-//		camera.setX(camera.x()+transSpeed);
-		m_transform.rotate(-rotSpeed, 0, 1, 0);
+    translation = -transSpeed*m_camera.right();
 	}
 	if (Input::keyPressed(Qt::Key_D))
 	{
-//		camera.setX(camera.x()-transSpeed);
-		m_transform.rotate(rotSpeed, 0, 1, 0);
+    translation = transSpeed*m_camera.right();
 	}
 	if (Input::keyPressed(Qt::Key_Q))
 	{
-//		camera.setY(camera.y()+transSpeed);
-		m_transform.rotate(-rotSpeed, 1, 0, 0);
+    translation = transSpeed*m_camera.up();
 	}
 	if (Input::keyPressed(Qt::Key_E))
 	{
-//		camera.setY(camera.y()-transSpeed);
-		m_transform.rotate(rotSpeed, 1, 0, 0);
+    translation = -transSpeed*m_camera.up();
 	}
 
-//	if (Input::keyPressed(Qt::Key_R))
-//	{
-//		camera=QVector3D(0, 0, 1);
-//	}
-
-	if((m_camera.translation()+translation).z() > cMaxRo) translation.setZ(cMaxRo-m_camera.translation().z());
-	if((m_camera.translation()+translation).z() < cMinRo) translation.setZ(cMinRo-m_camera.translation().z());
 	m_camera.translate(translation);
 
-//	if(camera.z()>cMaxRo) camera.setZ(cMaxRo);
-//	if(camera.z()<cMinRo) camera.setZ(cMinRo);
-//	if(camera.y()>M_PI/2) camera.setY(M_PI/2);
-//	if(camera.y()<-M_PI/2) camera.setY(-M_PI/2);
-
-//	m_camera.setTranslation(0, 0, 0);
-//	m_camera.setRotation(0, 0, 0, 0);
-
-//	QVector3D pos(
-//				camera.z()*cos(camera.y())*sin(camera.x()),
-//				camera.z()*sin(camera.y()),
-//				camera.z()*cos(camera.y())*cos(camera.x()));
-//	m_camera.translate(pos);
-
-//	m_camera.rotate(camera.x()/M_PI*180, Camera3D::LocalUp);
-//	m_camera.rotate(-camera.y()/M_PI*180, m_camera.right());
-	// Schedule a redraw
 	QOpenGLWidget::update();
 }
 

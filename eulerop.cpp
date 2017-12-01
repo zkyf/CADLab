@@ -1,55 +1,55 @@
 #include "eulerop.h"
 
-void EulerOp::MVFS(BRepOP *object, QVector3D pos)
+void EulerOp::MVFS(BRepOP &object, QVector3D pos)
 {
-  if(object == nullptr) return;
-  *object = new BRepObject;
-  BRepOP o = *object;
-  BRepMesh mesh;
-  BRepPoint point;
-  BRepLoop loop;
-  point.SetPosition(pos);
-  mesh.AddPoint(point);
-  mesh.AddLoop(loop);
-
-  o->AddMesh(mesh);
+  BRepMP mesh = object->AddMesh();
+  qDebug() << "mesh add: " << mesh;
+  BRepPP p = mesh->AddPoint();
+  qDebug() << "point add: " << p;
+  p->SetPosition(pos);
+  qDebug() << p->Position();
+  BRepLP loop = mesh->AddLoop();
+  qDebug() << "loop add: " << loop;
 }
 
 BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
 {
-  if(mesh.data() == nullptr || loop == nullptr || point == nullptr) return BRepPP(nullptr);
-  BRepPoint v2;
-  v2.SetPosition(pos);
-  int index = mesh->AddPoint(v2);
-  BRepPP v2p = mesh->Point(index);
+  qDebug() << "MEV";
+  if(mesh == nullptr || loop == nullptr || point == nullptr) return BRepPP(nullptr);
+  BRepPP v2p = mesh->AddPoint();
+  v2p->SetPosition(pos);
+  qDebug() << "0";
   BRepHEP fromp, top;
   for(int i=0; i<loop->HalfEdgeNum(); i++)
   {
+    qDebug() << "i=" << i;
     if(loop->HalfEdge(i)->From() == point)
     {
-      fromp = loopHalfEdge(i);
+      fromp = loop->HalfEdge(i);
     }
     if(loop->HalfEdge(i)->To() == point)
     {
-      top = loopHalfEdge(i);
+      top = loop->HalfEdge(i);
     }
   }
-  if(loop->HalfEdgeNum()!=0 && (fromp.data()==nullptr || top.data()==nullptr))
+  if(loop->HalfEdgeNum()!=0 && (fromp==nullptr || top==nullptr))
     return BRepPP(nullptr);
 
+  qDebug() << "1";
   BRepHEP he1p = mesh->AddHalfEdge();
   BRepHEP he2p = mesh->AddHalfEdge();
   he1p->SetFrom(point);
-  he1p->SetTo(v2);
+  he1p->SetTo(v2p);
   he1p->SetOpposite(he2p);
   he1p->SetNext(he2p);
 
-  if(top.data()!=nullptr)
+  qDebug() << "2";
+  if(top!=nullptr)
     top->SetNext(he1p);
-  he2p->SetFrom(v2);
+  he2p->SetFrom(v2p);
   he2p->SetTo(point);
   he2p->SetOpposite(he1p);
-  if(fromp.data()!=nullptr)
+  if(fromp!=nullptr)
     he2p->SetNext(fromp);
   if(loop->HalfEdgeNum()==0)
   {
@@ -57,17 +57,18 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
     he2p->SetNext(he1p);
   }
 
+  qDebug() << "3";
   loop->AddHalfEdge(he1p);
   loop->AddHalfEdge(he2p);
+
+  qDebug() << "4";
 
   return v2p;
 }
 
-BRepLP EulerOp::MEL(BRepMP mesh, BRepLP loop, BRepPP v1, BRepPP v2)
+BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
 {
-  BRepLoop newLoop;
-  l2 = mesh->AddLoop(newLoop);
-  BRepLP l2;
+  BRepLP l2 = mesh->AddLoop();
 
   BRepHEP heFromv1 = loop->HEFromV(v1);
   BRepHEP heTov1 = loop->HEToV(v1);
@@ -100,7 +101,7 @@ BRepLP EulerOp::MEL(BRepMP mesh, BRepLP loop, BRepPP v1, BRepPP v2)
   }
   while(he!=heFromv1);
 
-  BRepHEP he = heFromv2;
+  he = heFromv2;
   do
   {
     l2->AddHalfEdge(he);
@@ -108,41 +109,50 @@ BRepLP EulerOp::MEL(BRepMP mesh, BRepLP loop, BRepPP v1, BRepPP v2)
   }
   while(he!=heFromv2);
 
-  return l2;
-}
-
-BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepHEP he)
-{
-  BRepPP v1 = he->From();
-  BRepPP v2 = he->To();
-
-  BRepHEP he2 = he->Opposite();
-
-  BRepLP l2 = mesh->AddLoop();
-  BRepHEP hei = he->Next();
-  while(hei->Next()!=he2)
+  BRepFP face = mesh->AddFace();
+  if(loop->HalfEdgeNum()<l2->HalfEdgeNum())
   {
-    l2->AddHalfEdge(hei);
+    BRepLP t = l2;
+    l2 = loop;
+    loop = t;
   }
+  face->AddLoop(l2);
 
-  hei = he2->Next();
-  loop->Clear();
-  while(hei->Next()!=he)
-  {
-    loop->AddHalfEdge(hei);
-  }
-
-  he->Prev()->SetNext(he2->Next());
-  he->Next()->SetPrev(he2->Prev());
-  he2->Prev()->SetNext(he->Next());
-  he2->Next()->SetPrev(he->Prev());
-
-  mesh->RemoveHalfEdge(he);
-  mesh->RemoveHalfEdge(he2);
-
-  return l2;
+  return face;
 }
 
-void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
-{
-}
+//BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepHEP he)
+//{
+//  BRepPP v1 = he->From();
+//  BRepPP v2 = he->To();
+
+//  BRepHEP he2 = he->Opposite();
+
+//  BRepLP l2 = mesh->AddLoop();
+//  BRepHEP hei = he->Next();
+//  while(hei->Next()!=he2)
+//  {
+//    l2->AddHalfEdge(hei);
+//  }
+
+//  hei = he2->Next();
+//  loop->Clear();
+//  while(hei->Next()!=he)
+//  {
+//    loop->AddHalfEdge(hei);
+//  }
+
+//  he->Prev()->SetNext(he2->Next());
+//  he->Next()->SetPrev(he2->Prev());
+//  he2->Prev()->SetNext(he->Next());
+//  he2->Next()->SetPrev(he->Prev());
+
+//  mesh->RemoveHalfEdge(he);
+//  mesh->RemoveHalfEdge(he2);
+
+//  return l2;
+//}
+
+//void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
+//{
+//}
