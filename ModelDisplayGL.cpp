@@ -160,6 +160,7 @@ void GLDisplayer::paintGL()
 {
 	//qDebug() << endl << "paintGL()";
 	//qDebug() << "Clear";
+  glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//qDebug() << "bind program and setUniformValue";
@@ -182,8 +183,9 @@ void GLDisplayer::paintGL()
 	m_program->setUniformValue("cameraToView", m_projection);
 	{
 		Light light;
-		//light.SetPointLight(QVector3D(3, 3, 3), 5.0, QVector3D(1.0, 1.0, 1.0));
-		light.SetEnvLight();
+    light.SetPointLight(m_camera.translation(), 5.0, QVector3D(1.0, 1.0, 1.0));
+//    light.SetDirectionalLight(QVector3D(1, 1, 1));
+//		light.SetEnvLight();
 //		m_object.bind();
 		m_program->setUniformValue("modelToWorld", m_transform.toMatrix());
 		m_program->setUniformValue("lightInfo.type", light.type);
@@ -195,7 +197,7 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("rotation", m_transform.rotation().toRotationMatrix());
 		m_program->setUniformValue("cameraPos", m_camera.translation());
 		m_program->setUniformValue("texture", 0);
-		m_program->setUniformValue("mode", mode);
+    m_program->setUniformValue("mode", 0);
     //
 
     static bool init = true;
@@ -210,6 +212,7 @@ void GLDisplayer::paintGL()
           init = false;
           qDebug() << "==================";
           qDebug() << "face num = " << mesh->FaceNum() << " #" << fid;
+          qDebug() << "normal = " << face->Normal();
           qDebug() << "face half edges: ";
           for(int i=0; i<face->LoopNum(); i++)
           {
@@ -233,6 +236,7 @@ void GLDisplayer::paintGL()
         {
 //          qDebug() << "fid=" << fid;
           BRepFP face = mesh->Face(fid);
+          if(!face->IsPlane()) continue;
           // draw stencil buffer first
           glEnable(GL_STENCIL_TEST);
           glStencilFunc(GL_NEVER, 0, 1);
@@ -250,13 +254,13 @@ void GLDisplayer::paintGL()
               vertData.push_back(pos.z());
 
               // ambient
-              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
+              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // diffuse
-              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
+              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // specular
-              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
+              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // normal
               QVector3D normal = face->Normal();
@@ -291,13 +295,13 @@ void GLDisplayer::paintGL()
               vertData.push_back(pos.z());
 
               // ambient
-              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
+              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // diffuse
-              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
+              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // specular
-              vertData.push_back(0.0); vertData.push_back(0.0); vertData.push_back(0.0);
+              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // normal
               QVector3D normal = face->Normal();
@@ -342,8 +346,8 @@ void GLDisplayer::update()
 	// Update input
 	Input::update();
 
-	float rotSpeed   = 0.1f;
-	float transSpeed = 0.01f;
+  float rotSpeed   = 0.1f;
+  float transSpeed = 0.1f;
 	if (Input::keyPressed(Qt::Key_Shift))
 	{
     transSpeed = 0.05f;
@@ -357,8 +361,8 @@ void GLDisplayer::update()
 		// Handle rotations
 //		camera.setX(camera.x()-rotSpeed * Input::mouseDelta().x());
 //		camera.setY(camera.y()+rotSpeed * Input::mouseDelta().y());
-    m_camera.rotate(Input::mouseDelta().x()*rotSpeed, 0, 1, 0);
-    m_camera.rotate(Input::mouseDelta().y()*rotSpeed, 1, 0, 0);
+    m_camera.rotate(Input::mouseDelta().x()*rotSpeed, m_camera.up());
+    m_camera.rotate(Input::mouseDelta().y()*rotSpeed, m_camera.right());
 	}
 
 	// Handle translations

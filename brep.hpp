@@ -205,6 +205,19 @@ private:
   bool dir;
 
 public:
+  void operator=(BRepLoop& b)
+  {
+    dir = b.dir;
+    hes = b.hes;
+  }
+
+  void Exchange(BRepLoop& b)
+  {
+    BRepLoop t = *this;
+    *this = b;
+    b = t;
+  }
+
   int HalfEdgeNum() { return hes.size(); }
   BRepHEP HalfEdge(int index)
   {
@@ -284,17 +297,48 @@ private:
 //  _QLinkedList<BRepRenderData> renderData;
   _QLinkedList<BRepLP> loops;
   BRepMP mesh;
-  QVector3D normal;
 
 public:
   // get methods
+  bool IsPlane()
+  {
+    QVector3D normal = Normal();
+    for(int i=0; i<loops.size(); i++)
+    {
+      BRepLP loop = loops[i];
+      for(int j=0; j<loop->HalfEdgeNum(); j++)
+      {
+        QVector3D v1 = loop->HalfEdge(j)->From()->Position();
+        QVector3D v2 = loop->HalfEdge(j)->To()->Position();
+        QVector3D v3 = loop->HalfEdge(j)->Next()->To()->Position();
+
+        QVector3D ln = QVector3D::crossProduct(v3-v2, v1-v2).normalized();
+        if((ln-normal).length()>=1e-6)
+        {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   BRepTP Texture() { return texture; }
   int LoopNum() { return loops.size(); }
   BRepLP Loop(int index) { return loops[index]; }
 //  int RenderDataNum() { return renderData.size(); }
 //  BRepRP RenderData(int index) { return renderData[index]; }
   BRepMP Mesh() { return mesh; }
-  QVector3D Normal() { return normal; }
+  QVector3D Normal()
+  {
+//    return normal;
+    if(loops.size()==0) return QVector3D(0, 0, 0);
+    if(loops[0]->HalfEdgeNum()<3) return QVector3D(0, 0, 0);
+    QVector3D v1 = loops[0]->HalfEdge(0)->From()->Position();
+    QVector3D v2 = loops[0]->HalfEdge(0)->To()->Position();
+    QVector3D v3 = loops[0]->HalfEdge(0)->Next()->To()->Position();
+//    qDebug() << "Normal: " << v1 << v2 << v3;
+    return QVector3D::crossProduct(v3-v2, v1-v2).normalized();
+  }
 
   // set methods
   bool SetTexture(BRepTP t) { texture = t; }
@@ -303,12 +347,11 @@ public:
 //  bool AddRenderData(BRepRenderData r) { renderData.push_back(r); }
 //  bool RemoveRenderData(int index) { renderData.removeOne(index); }
   bool SetMesh(BRepMP m) { mesh = m; }
-  void SetNormal(QVector3D n) { normal = n; }
+//  void SetNormal(QVector3D n) { normal = n; }
 
   bool operator==(const BRepFace& b)
   {
     if(texture!=b.texture) return false;
-    if(normal!=b.normal) return false;
     if(mesh!=b.mesh) return false;
     if(loops!=b.loops) return false;
     return true;

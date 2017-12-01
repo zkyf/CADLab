@@ -40,6 +40,7 @@ highp vec4 Diffuse(highp vec3 lightDir, highp vec3 color)
 {
     lightDir = normalize(lightDir);
     highp float intn = dot(-lightDir, n);
+    if(intn < 0.0) intn=-intn;
     intn = clamp(intn, 0.1, 1.0);
     return MakeColor(highp vec4(color*intn, 1.0), vDiffuse);
 }
@@ -57,7 +58,7 @@ highp vec4 Specular(highp vec3 position, highp vec3 color)
     highp vec3 reflectDir = reflect(-lightDir, n);
     reflectDir = normalize(reflectDir);
     highp float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-    highp float specularStrength = 0.5;
+    highp float specularStrength = lightInfo.strength;
     highp float specular = specularStrength * spec;
     return MakeColor(vec4(color*(intn+specular), 1.0), vSpecular);
 }
