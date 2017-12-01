@@ -12,6 +12,7 @@ void EulerOp::MVFS(BRepOP &object, QVector3D pos)
   qDebug() << "loop add: " << loop;
   BRepFP face = mesh->AddFace();
   face->AddLoop(loop);
+  loop->SetFace(face);
 }
 
 BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
@@ -62,6 +63,8 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
   qDebug() << "3";
   loop->AddHalfEdge(he1p);
   loop->AddHalfEdge(he2p);
+  he1p->SetLoop(loop);
+  he2p->SetLoop(loop);
 
   qDebug() << "4";
 
@@ -98,6 +101,7 @@ BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
   BRepHEP he = heFromv1;
   do
   {
+    he->SetLoop(loop);
     loop->AddHalfEdge(he);
     he = he->Next();
   }
@@ -106,6 +110,7 @@ BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
   he = heFromv2;
   do
   {
+    he->SetLoop(l2);
     l2->AddHalfEdge(he);
     he = he->Next();
   }
@@ -115,40 +120,60 @@ BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
   if(loop->HalfEdgeNum()<l2->HalfEdgeNum())
   {
     loop->Exchange(*l2);
+    loop->SetFace(l2->Face());
   }
   face->AddLoop(l2);
+  l2->SetFace(face);
 
   return face;
 }
 
-BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepHEP he)
+BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepFP r, BRepHEP he)
 {
+  qDebug() << "1";
   BRepPP v1 = he->From();
   BRepPP v2 = he->To();
 
+  qDebug() << "1";
   BRepHEP he2 = he->Opposite();
 
   BRepLP l2 = mesh->AddLoop();
   BRepHEP hei = he->Next();
-  while(hei->Next()!=he2)
+  qDebug() << "1";
+  while(hei!=he2)
   {
     l2->AddHalfEdge(hei);
+    hei=hei->Next();
   }
 
+  qDebug() << "1";
   hei = he2->Next();
   loop->Clear();
-  while(hei->Next()!=he)
+  while(hei!=he)
   {
     loop->AddHalfEdge(hei);
+    hei=hei->Next();
   }
 
+  qDebug() << "1";
   he->Prev()->SetNext(he2->Next());
   he->Next()->SetPrev(he2->Prev());
   he2->Prev()->SetNext(he->Next());
   he2->Next()->SetPrev(he->Prev());
 
+  qDebug() << "1";
   mesh->RemoveHalfEdge(he);
   mesh->RemoveHalfEdge(he2);
+
+  qDebug() << "1";
+  if(r->LoopNum()>0)
+  {
+    loop->Face()->AddLoop(r->Loop(0));
+    r->Loop(0)->SetFace(loop->Face());
+    r->Loop(0)->SetDir(true);
+    mesh->RemoveFace(r);
+  }
+  qDebug() << "1";
 
   return l2;
 }

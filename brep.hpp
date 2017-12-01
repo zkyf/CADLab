@@ -168,6 +168,7 @@ private:
   BRepHEP next;
   BRepHEP opposite;
   BRepFP face;
+  BRepLP loop;
 
 public:
   // get methods
@@ -177,6 +178,7 @@ public:
   BRepHEP Next() { return next; }
   BRepHEP Opposite() { return opposite; }
   BRepFP Face() { return face; }
+  BRepLP Loop() { return loop; }
 
   // set methods
   void SetFrom(BRepPP p) { from = p; }
@@ -185,6 +187,7 @@ public:
   void SetNext(BRepHEP e) { next = e; }
   void SetOpposite(BRepHEP e) { opposite = e; }
   void SetFace(BRepFP f) { face = f; }
+  void SetLoop(BRepLP l) { loop = l; }
 
   bool operator==(const BRepHalfEdge& b)
   {
@@ -194,21 +197,26 @@ public:
         prev==b.prev &&
         next==b.next &&
         opposite==b.opposite &&
-        face==b.face;
+        face==b.face &&
+        loop==b.loop;
   }
 };
 
 class BRepLoop       : public BRepVisualItem
 {
 private:
+  BRepFP face;
   _QLinkedList<BRepHEP> hes;
   bool dir;
 
 public:
+  BRepFP Face() { return face; }
+  void SetFace(BRepFP f) { face = f; }
   void operator=(BRepLoop& b)
   {
     dir = b.dir;
     hes = b.hes;
+    face = b.face;
   }
 
   void Exchange(BRepLoop& b)
@@ -216,6 +224,15 @@ public:
     BRepLoop t = *this;
     *this = b;
     b = t;
+
+    for(int i=0; i<hes.size(); i++)
+    {
+      hes[i]->SetLoop(this);
+    }
+    for(int i=0; i<b.hes.size(); i++)
+    {
+      b.hes[i]->SetLoop(&b);
+    }
   }
 
   int HalfEdgeNum() { return hes.size(); }

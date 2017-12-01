@@ -205,26 +205,26 @@ void GLDisplayer::paintGL()
     {
       if(init)
       {
-        BRepMP mesh = obj->Mesh(0);
-        for(int fid=0; fid<mesh->FaceNum(); fid++)
-        {
-          BRepFP face = mesh->Face(fid);
-          init = false;
-          qDebug() << "==================";
-          qDebug() << "face num = " << mesh->FaceNum() << " #" << fid;
-          qDebug() << "normal = " << face->Normal();
-          qDebug() << "face half edges: ";
-          for(int i=0; i<face->LoopNum(); i++)
-          {
-            qDebug() << "  loop#" << i;
-            BRepLP l = face->Loop(i);
-            for(int j=0; j<l->HalfEdgeNum(); j++)
-            {
-              BRepHEP he = l->HalfEdge(j);
-              qDebug() << "    he#" << j << "from " << he->From()->Position() << " to " << he->To()->Position();
-            }
-          }
-        }
+        init = false;
+//        BRepMP mesh = obj->Mesh(0);
+//        for(int fid=0; fid<mesh->FaceNum(); fid++)
+//        {
+//          BRepFP face = mesh->Face(fid);
+//          qDebug() << "==================";
+//          qDebug() << "face num = " << mesh->FaceNum() << " #" << fid << "add=" << face;
+//          qDebug() << "normal = " << face->Normal();
+//          qDebug() << "face half edges: ";
+//          for(int i=0; i<face->LoopNum(); i++)
+//          {
+//            qDebug() << "  loop#" << i << " face add=" << face->Loop(i)->Face() << " loop add=" << face->Loop(i);
+//            BRepLP l = face->Loop(i);
+//            for(int j=0; j<l->HalfEdgeNum(); j++)
+//            {
+//              BRepHEP he = l->HalfEdge(j);
+//              qDebug() << "    he#" << j << "from " << he->From()->Position() << " to " << he->To()->Position() << " loop add=" << he->Loop();
+//            }
+//          }
+//        }
       }
 //      qDebug() << "Draw";
       for(int mid = 0; mid < obj->MeshNum(); mid++)
