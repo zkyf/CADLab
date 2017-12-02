@@ -140,7 +140,14 @@ public:
   {
     return (position == b.position) && (normal == b.normal);
   }
+
+//  friend QDebug& operator<<(QDebug& stream, const BRepPoint& p);
 };
+//QDebug& operator<<(QDebug& stream, const BRepPoint& p)
+//{
+//  stream << p.position;
+//  return stream;
+//}
 
 class BRepEdge       : public BRepItem
 {
@@ -171,6 +178,17 @@ private:
   BRepLP loop;
 
 public:
+  void Reverse()
+  {
+    BRepPP t = from;
+    from = to;
+    to = t;
+
+    BRepHEP tt = prev;
+    prev=next;
+    next=tt;
+  }
+
   // get methods
   BRepPP From() { return from; }
   BRepPP To() { return to; }
@@ -188,6 +206,11 @@ public:
   void SetOpposite(BRepHEP e) { opposite = e; }
   void SetFace(BRepFP f) { face = f; }
   void SetLoop(BRepLP l) { loop = l; }
+
+  void Print()
+  {
+    qDebug() << "HE @" << this << from->Position() << "->" << to->Position() << "Prev=" << prev << "Next=" << next;
+  }
 
   bool operator==(const BRepHalfEdge& b)
   {
@@ -210,6 +233,35 @@ private:
   bool dir;
 
 public:
+  void Reverse()
+  {
+    for(int i=0; i<hes.size(); i++)
+    {
+      hes[i]->Reverse();
+    }
+  }
+
+  void Print()
+  {
+    BRepHEP he = hes[0];
+    qDebug() << "Loop @" << this << " hes.size()=" << hes.size() << " face=" << face;
+    do
+    {
+      he->Print();
+      he=he->Next();
+    }
+    while(he!=hes[0]);
+  }
+
+  QVector3D Normal()
+  {
+    if(hes.size()<3) return QVector3D(0, 0, 0);
+    QVector3D v1 = hes[0]->From()->Position();
+    QVector3D v2 = hes[1]->From()->Position();
+    QVector3D v3 = hes[2]->From()->Position();
+    return QVector3D::crossProduct(v3-v2, v1-v2).normalized();
+  }
+
   BRepFP Face() { return face; }
   void SetFace(BRepFP f) { face = f; }
   void operator=(BRepLoop& b)
@@ -242,7 +294,7 @@ public:
     else return BRepHEP(nullptr);
   }
   int AddHalfEdge(BRepHEP he) { hes.push_back(he); return hes.size()-1;}
-  bool RemoveHalfEdge(BRepHEP index)
+  void RemoveHalfEdge(BRepHEP index)
   {
     hes.removeOne(index);
   }
@@ -316,6 +368,16 @@ private:
   BRepMP mesh;
 
 public:
+  void Print()
+  {
+    qDebug() << "Face @" << this << " mesh=" << mesh << " loops.size()=" << loops.size();
+    for(int i=0; i<loops.size(); i++)
+    {
+      qDebug() << "loop #" << i << "/" << loops.size();
+      loops[i]->Print();
+    }
+  }
+
   // get methods
   bool IsPlane()
   {
@@ -330,7 +392,7 @@ public:
         QVector3D v3 = loop->HalfEdge(j)->Next()->To()->Position();
 
         QVector3D ln = QVector3D::crossProduct(v3-v2, v1-v2).normalized();
-        if((ln-normal).length()>=1e-6)
+        if((ln-normal).length()>=1e-6 && (ln+normal).length()>1e-6)
         {
           return false;
         }
@@ -358,12 +420,12 @@ public:
   }
 
   // set methods
-  bool SetTexture(BRepTP t) { texture = t; }
+  void SetTexture(BRepTP t) { texture = t; }
   int AddLoop(BRepLP loop) { loops.push_back(loop); return loops.size()-1;}
-  bool RemoveLoop(BRepLP index) { loops.removeOne(index); }
+  void RemoveLoop(BRepLP index) { loops.removeOne(index); }
 //  bool AddRenderData(BRepRenderData r) { renderData.push_back(r); }
 //  bool RemoveRenderData(int index) { renderData.removeOne(index); }
-  bool SetMesh(BRepMP m) { mesh = m; }
+  void SetMesh(BRepMP m) { mesh = m; }
 //  void SetNormal(QVector3D n) { normal = n; }
 
   bool operator==(const BRepFace& b)

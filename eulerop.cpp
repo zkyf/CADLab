@@ -22,7 +22,7 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
   BRepPP v2p = mesh->AddPoint();
   v2p->SetPosition(pos);
   qDebug() << "0";
-  BRepHEP fromp, top;
+  BRepHEP fromp=nullptr, top=nullptr;
   for(int i=0; i<loop->HalfEdgeNum(); i++)
   {
     qDebug() << "i=" << i;
@@ -30,13 +30,16 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
     {
       fromp = loop->HalfEdge(i);
     }
-    if(loop->HalfEdge(i)->To() == point)
-    {
-      top = loop->HalfEdge(i);
-    }
   }
-  if(loop->HalfEdgeNum()!=0 && (fromp==nullptr || top==nullptr))
+  if(loop->HalfEdgeNum()!=0 && (fromp==nullptr))
     return BRepPP(nullptr);
+  if(fromp!=nullptr)
+  {
+    top=fromp->Prev();
+
+    qDebug() << "fromp"; fromp->Print();
+    qDebug() << "top"; top->Print();
+  }
 
   qDebug() << "1";
   BRepHEP he1p = mesh->AddHalfEdge();
@@ -46,17 +49,34 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
   he1p->SetOpposite(he2p);
   he1p->SetNext(he2p);
 
-  qDebug() << "2";
+
   if(top!=nullptr)
     top->SetNext(he1p);
   he2p->SetFrom(v2p);
   he2p->SetTo(point);
   he2p->SetOpposite(he1p);
+  he2p->SetPrev(he1p);
+  qDebug() << "2";
+
+  qDebug() << "he1p"; he1p->Print();
+  qDebug() << "he2p"; he2p->Print();
+
   if(fromp!=nullptr)
+  {
     he2p->SetNext(fromp);
+    fromp->SetPrev(he2p);
+    he1p->SetPrev(top);
+    top->SetNext(he1p);
+
+    qDebug() << "after";
+    qDebug() << "fromp"; fromp->Print();
+    qDebug() << "top"; top->Print();
+    qDebug() << "he1p"; he1p->Print();
+    qDebug() << "he2p"; he2p->Print();
+  }
   if(loop->HalfEdgeNum()==0)
   {
-    he1p->SetNext(he2p);
+    he1p->SetPrev(he2p);
     he2p->SetNext(he1p);
   }
 
@@ -73,63 +93,136 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
 
 BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
 {
-  BRepLP l2 = mesh->AddLoop();
-
-  BRepHEP heFromv1 = loop->HEFromV(v1);
-  BRepHEP heTov1 = loop->HEToV(v1);
-
-  BRepHEP heFromv2 = loop->HEFromV(v2);
-  BRepHEP heTov2 = loop->HEToV(v2);
-
-  BRepHEP hev1v2 = mesh->AddHalfEdge();
-  BRepHEP hev2v1 = mesh->AddHalfEdge();
-
-  heTov1->SetNext(hev1v2);
-  hev1v2->SetFrom(v1);
-  hev1v2->SetTo(v2);
-  hev1v2->SetOpposite(hev2v1);
-  hev1v2->SetNext(heFromv2);
-
-  heTov2->SetNext(hev2v1);
-  hev2v1->SetFrom(v2);
-  hev2v1->SetTo(v1);
-  hev2v1->SetOpposite(hev1v2);
-  hev2v1->SetNext(heFromv1);
-
-  loop->Clear();
-
-  BRepHEP he = heFromv1;
-  do
+  qDebug() << "MEF";
+  BRepHEP heS = loop->HalfEdge(0);
+  BRepHEP heT = heS;
+  while(heS->From()!=v1 && heS->From()!=v2)
   {
-    he->SetLoop(loop);
-    loop->AddHalfEdge(he);
-    he = he->Next();
+    qDebug() << "finding heS: " << heS << heS->From()->Position() << "->" << heS->To()->Position();
+    heS=heS->Prev();
   }
-  while(he!=heFromv1);
-
-  he = heFromv2;
-  do
+  while(heT->To()!=v1 && heT->To()!=v2)
   {
-    he->SetLoop(l2);
-    l2->AddHalfEdge(he);
-    he = he->Next();
+    qDebug() << "finding heT: " << heT << heT->From()->Position() << "->" << heT->To()->Position();
+    heT=heT->Next();
   }
-  while(he!=heFromv2);
+  qDebug() << "heS: "; heS->Print();
+  qDebug() << "heT: "; heT->Print();
 
-  BRepFP face = mesh->AddFace();
-  if(loop->HalfEdgeNum()<l2->HalfEdgeNum())
+  BRepHEP heS2 = heT->Next();
+  BRepHEP heT2 = heS->Prev();
+  qDebug() << "heS2: "; heS2->Print();
+  qDebug() << "heT2: "; heT2->Print();
+  qDebug() << "MEF 1";
+  if(heS->From()!=heT->To())
   {
-    loop->Exchange(*l2);
-    loop->SetFace(l2->Face());
-  }
-  face->AddLoop(l2);
-  l2->SetFace(face);
+    BRepLP l2=mesh->AddLoop();
+    for(BRepHEP he=heS; he->Prev()!=heT; he=he->Next())
+    {
+      qDebug() << "Remove from loop:" << he << he->From()->Position() << "->" << he->To()->Position() << "Prev()=" << he->Prev();
+      loop->RemoveHalfEdge(he);
+      l2->AddHalfEdge(he);
+      he->SetLoop(l2);
+    }
+    qDebug() << "MEF 1";
+    BRepHEP he1 = mesh->AddHalfEdge();
+    BRepHEP he2 = mesh->AddHalfEdge();
+    he1->SetFrom(heT->To());
+    he1->SetTo(heS->From());
+    he1->SetLoop(l2);
+    he1->SetOpposite(he2);
+    he1->SetNext(heS);
+    he1->SetPrev(heT);
+    heT->SetNext(he1);
+    heS->SetPrev(he1);
+    l2->AddHalfEdge(he1);
+    qDebug() << "MEF 1";
 
-  return face;
+    he2->SetFrom(he1->To());
+    he2->SetTo(he1->From());
+    he2->SetOpposite(he1);
+    he2->SetLoop(loop);
+    he2->SetNext(heS2);
+    he2->SetPrev(heT2);
+    heS2->SetPrev(he2);
+    heT2->SetNext(he2);
+    loop->AddHalfEdge(he2);
+    qDebug() << "MEF 1";
+
+    qDebug() << "l2:"; l2->Print();
+    qDebug() << "loop:"; loop->Print();
+
+    if(l2->HalfEdgeNum()>loop->HalfEdgeNum())
+    {
+      loop->Exchange(*l2);
+    }
+    qDebug() << "MEF 1";
+
+    BRepFP nf = mesh->AddFace();
+    nf->SetMesh(mesh);
+    nf->AddLoop(l2);
+    l2->SetFace(nf);
+    qDebug() << "MEF 1";
+    return nf;
+  }
+  else
+  {
+    qDebug() << "subloop";
+    BRepLP temp = mesh->AddLoop();
+    for(BRepHEP he=heS; he->Prev()!=heT; he=he->Next())
+    {
+      temp->AddHalfEdge(he);
+      he->SetLoop(temp);
+      loop->RemoveHalfEdge(he);
+    }
+
+    heT->Next()->SetPrev(heS->Prev());
+    heS->Prev()->SetNext(heT->Next());
+    heT->SetNext(heS);
+    heS->SetPrev(heT);
+
+    qDebug() << "temp:"; temp->Print();
+    qDebug() << "Loop:"; loop->Print();
+
+    BRepFP tempFace = MEF(mesh, loop, v1, v2);
+    qDebug() << "tempFace:"; tempFace->Loop(0)->Print();
+
+    if(QVector3D::dotProduct(tempFace->Normal(), temp->Normal())<0)
+    {
+      qDebug() << "exchanged";
+      loop->Exchange(*(tempFace->Loop(0)));
+    }
+
+    qDebug() << "tempFace:"; tempFace->Loop(0)->Print();
+    qDebug() << "loop:"; loop->Print();
+
+    BRepHEP heFrom = loop->HEFromV(heT->To());
+    BRepHEP heTo = heFrom->Prev();
+
+    qDebug() << "heFrom:"; heFrom->Print();
+    qDebug() << "heTo:"; heTo->Print();
+
+    for(int i=0; i<temp->HalfEdgeNum(); i++)
+    {
+      temp->HalfEdge(i)->SetLoop(loop);
+      loop->AddHalfEdge(temp->HalfEdge(i));
+    }
+    heS->SetPrev(heTo);
+    heTo->SetNext(heS);
+    heT->SetNext(heFrom);
+    heFrom->SetPrev(heT);
+    temp->Clear();
+    mesh->RemoveLoop(temp);
+
+    qDebug() << "loop:"; loop->Print();
+
+    return tempFace;
+  }
 }
 
 BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepFP r, BRepHEP he)
 {
+  qDebug() << "KEMR";
   qDebug() << "1";
   BRepPP v1 = he->From();
   BRepPP v2 = he->To();
@@ -142,9 +235,13 @@ BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepFP r, BRepHEP he)
   qDebug() << "1";
   while(hei!=he2)
   {
+    qDebug() << "he:"; hei->Print();
     l2->AddHalfEdge(hei);
     hei=hei->Next();
   }
+  he2->Prev()->SetNext(he->Next());
+  he->Next()->SetPrev(he2->Prev());
+  qDebug() << "l2:"; l2->Print();
 
   qDebug() << "1";
   hei = he2->Next();
@@ -154,30 +251,30 @@ BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepFP r, BRepHEP he)
     loop->AddHalfEdge(hei);
     hei=hei->Next();
   }
-
   qDebug() << "1";
   he->Prev()->SetNext(he2->Next());
-  he->Next()->SetPrev(he2->Prev());
-  he2->Prev()->SetNext(he->Next());
   he2->Next()->SetPrev(he->Prev());
+  qDebug() << "loop";
+  loop->Print();
 
   qDebug() << "1";
   mesh->RemoveHalfEdge(he);
   mesh->RemoveHalfEdge(he2);
 
   qDebug() << "1";
-  if(r->LoopNum()>0)
-  {
-    loop->Face()->AddLoop(r->Loop(0));
-    r->Loop(0)->SetFace(loop->Face());
-    r->Loop(0)->SetDir(true);
-    mesh->RemoveFace(r);
-  }
+  r->AddLoop(l2);
+  l2->SetFace(r);
+  l2->SetDir(true);
   qDebug() << "1";
 
   return l2;
 }
 
-//void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
-//{
-//}
+void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
+{
+  f1->AddLoop(f2->Loop(0));
+  f2->Loop(0)->SetFace(f1);
+  f2->Loop(0)->Reverse();
+  f2->Loop(0)->SetDir(true);
+  mesh->RemoveFace(f2);
+}

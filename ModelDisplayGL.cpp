@@ -92,7 +92,6 @@ void GLDisplayer::initializeGL()
 	printVersionInformation();
 
 	qDebug() << "Set global information";
-	glDisable(GL_CULL_FACE);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 
 	// Application-specific initialization
@@ -161,7 +160,8 @@ void GLDisplayer::paintGL()
 	//qDebug() << endl << "paintGL()";
 	//qDebug() << "Clear";
   glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_STENCIL_TEST);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BITS);
 
 	//qDebug() << "bind program and setUniformValue";
 	m_program->bind();
@@ -197,7 +197,7 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("rotation", m_transform.rotation().toRotationMatrix());
 		m_program->setUniformValue("cameraPos", m_camera.translation());
 		m_program->setUniformValue("texture", 0);
-    m_program->setUniformValue("mode", 0);
+    m_program->setUniformValue("mode", 2);
     //
 
     static bool init = true;
@@ -206,84 +206,83 @@ void GLDisplayer::paintGL()
       if(init)
       {
         init = false;
-//        BRepMP mesh = obj->Mesh(0);
-//        for(int fid=0; fid<mesh->FaceNum(); fid++)
-//        {
-//          BRepFP face = mesh->Face(fid);
-//          qDebug() << "==================";
-//          qDebug() << "face num = " << mesh->FaceNum() << " #" << fid << "add=" << face;
-//          qDebug() << "normal = " << face->Normal();
-//          qDebug() << "face half edges: ";
-//          for(int i=0; i<face->LoopNum(); i++)
-//          {
-//            qDebug() << "  loop#" << i << " face add=" << face->Loop(i)->Face() << " loop add=" << face->Loop(i);
-//            BRepLP l = face->Loop(i);
-//            for(int j=0; j<l->HalfEdgeNum(); j++)
-//            {
-//              BRepHEP he = l->HalfEdge(j);
-//              qDebug() << "    he#" << j << "from " << he->From()->Position() << " to " << he->To()->Position() << " loop add=" << he->Loop();
-//            }
-//          }
-//        }
+        BRepMP mesh = obj->Mesh(0);
+        for(int fid=0; fid<mesh->FaceNum(); fid++)
+        {
+          BRepFP face = mesh->Face(fid);
+          qDebug() << "==================";
+          qDebug() << "face num = " << mesh->FaceNum() << " #" << fid << "add=" << face;
+          qDebug() << "normal = " << face->Normal();
+          qDebug() << "face half edges: ";
+          face->Print();
+        }
       }
 //      qDebug() << "Draw";
       for(int mid = 0; mid < obj->MeshNum(); mid++)
       {
 //        qDebug() << "";
-//        qDebug() << "mid=" << mid;
+//        qDebug() << "mid=" << mid << obj->MeshNum();
         BRepMP mesh = obj->Mesh(mid);
         for(int fid = 0; fid < mesh->FaceNum(); fid++)
         {
-//          qDebug() << "fid=" << fid;
+//          qDebug() << "fid=" << fid << mesh->FaceNum();
           BRepFP face = mesh->Face(fid);
           if(!face->IsPlane()) continue;
           // draw stencil buffer first
-          glEnable(GL_STENCIL_TEST);
-          glStencilFunc(GL_NEVER, 0, 1);
-          glStencilOp(GL_INVERT, GL_INVERT, GL_INVERT);
-          for(int lid = 0; lid<face->LoopNum(); lid++)
+
+          if(face->LoopNum()>1)
           {
-            BRepLP loop = face->Loop(lid);
-            QVector<float> vertData;
-            for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
+            glStencilMask(~0);
+//            glDisable(GL_SCISSOR_TEST);
+            glClear(GL_STENCIL_BITS);
+//            qDebug() << "stencil for fid=" << fid;
+            glStencilMask(1);
+            glStencilFunc(GL_NEVER, 1, 1);
+            glStencilOp(GL_INVERT, GL_REPLACE, GL_REPLACE);
+            for(int lid = 0; lid<face->LoopNum(); lid++)
             {
-              BRepHEP he = loop->HalfEdge(heid);
-              QVector3D pos = he->From()->Position();
-              vertData.push_back(pos.x());
-              vertData.push_back(pos.y());
-              vertData.push_back(pos.z());
+              BRepLP loop = face->Loop(lid);
+              QVector<float> vertData;
+              for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
+              {
+                BRepHEP he = loop->HalfEdge(heid);
+                QVector3D pos = he->From()->Position();
+                vertData.push_back(pos.x());
+                vertData.push_back(pos.y());
+                vertData.push_back(pos.z());
 
-              // ambient
-              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
+                // ambient
+                vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
-              // diffuse
-              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
+                // diffuse
+                vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
-              // specular
-              vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
+                // specular
+                vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
-              // normal
-              QVector3D normal = face->Normal();
-              vertData.push_back(normal.x()); vertData.push_back(normal.y()); vertData.push_back(normal.z());
+                // normal
+                vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
-              // texcoords
-              vertData.push_back(0.0); vertData.push_back(0.0);
+                // texcoords
+                vertData.push_back(0.0); vertData.push_back(0.0);
+              }
+
+              m_vertex.release();
+              m_vertex.create();
+              m_vertex.bind();
+              m_vertex.setUsagePattern(QOpenGLBuffer::StaticDraw);
+              m_vertex.allocate(vertData.data(), vertData.count()*sizeof(GLfloat));
+              glDrawArrays(GL_POLYGON, 0, loop->HalfEdgeNum());
             }
 
-            m_vertex.release();
-            m_vertex.create();
-            m_vertex.allocate(vertData.data(), vertData.count());
-            m_vertex.bind();
-            glDrawArrays(GL_POLYGON, 0, vertData.count());
+            glStencilFunc(GL_EQUAL, 1, 1);
+            glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
           }
-
-          glStencilFunc(GL_ALWAYS, 1, 1);
-          glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
           for(int lid = 0; lid<face->LoopNum(); lid++)
           {
             BRepLP loop = face->Loop(lid);
-//            qDebug() << "lid=" << lid << loop->HalfEdgeNum();
+//            qDebug() << "lid=" << lid << face->LoopNum() << loop->HalfEdgeNum();
             QVector<float> vertData;
             for(int heid=0; heid<loop->HalfEdgeNum(); heid++)
             {
@@ -316,13 +315,17 @@ void GLDisplayer::paintGL()
             m_vertex.create();
             m_vertex.bind();
             m_vertex.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//            qDebug() << "b allocate";
             m_vertex.allocate(vertData.constData(), vertData.count()*sizeof(GLfloat));
+//            qDebug() << "a allocate";
             glDrawArrays(GL_POLYGON, 0, loop->HalfEdgeNum());
+//            qDebug() << "a drawarrays";
           }
+          glStencilFunc(GL_ALWAYS, 0, 1);
         }
       }
     }
-	}
+  }
 	m_program->release();
 	//qDebug() << "Released";
 }
