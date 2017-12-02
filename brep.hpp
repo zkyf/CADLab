@@ -10,6 +10,8 @@
 #include <QSharedData>
 #include <QSharedDataPointer>
 #include <QString>
+#include <QSet>
+#include <QMap>
 #include <QLinkedList>
 #include <QVector2D>
 #include <QVector3D>
@@ -119,22 +121,24 @@ private:
   QVector3D position;
   QVector3D normal;
   _QLinkedList<BRepHEP> fanOutList;
+  _QLinkedList<BRepHEP> fanInList;
 
 public:
-  BRepPoint() {qDebug() << "c of BRepPoint @" << position << " with " << normal;}
-  ~BRepPoint() { qDebug() << "dc of BRepPoint @" << position << " with " << normal; }
 
   // get methods
   QVector3D Position() { return position; }
   QVector3D Normal() { return normal; }
   int FanOutNum() { return fanOutList.size(); }
   BRepHEP FanOutEdge(int index) { return fanOutList[index]; }
+  BRepHEP FanInEdge(int index) { return fanInList[index]; }
 
   // set methods
   void SetPosition(QVector3D pos) { position = pos; }
   void SetNormal(QVector3D n) { normal = n; }
   int AddFanOutEdge(BRepHEP edge) { fanOutList.push_back(edge); return fanOutList.size()-1;}
-  bool RemoveFanOutEdge(BRepHEP index) { fanOutList.removeOne(index); }
+  int AddFanInEdge(BRepHEP edge) { fanInList.push_back(edge); return fanInList.size()-1;}
+  void RemoveFanOutEdge(BRepHEP index) { fanOutList.removeOne(index); }
+  void RemoveFanInEdge(BRepHEP index) { fanInList.removeOne(index); }
 
   bool operator==(const BRepPoint& b)
   {
@@ -174,7 +178,6 @@ private:
   BRepHEP prev;
   BRepHEP next;
   BRepHEP opposite;
-  BRepFP face;
   BRepLP loop;
 
 public:
@@ -195,7 +198,6 @@ public:
   BRepHEP Prev() { return prev; }
   BRepHEP Next() { return next; }
   BRepHEP Opposite() { return opposite; }
-  BRepFP Face() { return face; }
   BRepLP Loop() { return loop; }
 
   // set methods
@@ -204,7 +206,6 @@ public:
   void SetPrev(BRepHEP e) { prev = e; }
   void SetNext(BRepHEP e) { next = e; }
   void SetOpposite(BRepHEP e) { opposite = e; }
-  void SetFace(BRepFP f) { face = f; }
   void SetLoop(BRepLP l) { loop = l; }
 
   void Print()
@@ -220,7 +221,6 @@ public:
         prev==b.prev &&
         next==b.next &&
         opposite==b.opposite &&
-        face==b.face &&
         loop==b.loop;
   }
 };
@@ -233,6 +233,20 @@ private:
   bool dir;
 
 public:
+
+  void Translate(QVector3D d)
+  {
+    QSet<BRepPP> set;
+    for(int i=0; i<hes.size(); i++)
+    {
+      set.insert(hes[i]->From());
+    }
+    for(QSet<BRepPP>::iterator i=set.begin(); i!=set.end(); i++)
+    {
+      (*i)->SetPosition((*i)->Position()+d);
+    }
+  }
+
   void Reverse()
   {
     for(int i=0; i<hes.size(); i++)
@@ -276,6 +290,10 @@ public:
     BRepLoop t = *this;
     *this = b;
     b = t;
+
+    BRepFP ft = face;
+    face=  b.face;
+    b.face=ft;
 
     for(int i=0; i<hes.size(); i++)
     {
@@ -368,6 +386,23 @@ private:
   BRepMP mesh;
 
 public:
+  void Translate(QVector3D d)
+  {
+    QSet<BRepPP> set;
+    for(int i=0; i<loops.size(); i++)
+    {
+      for(int j=0; j<loops[i]->HalfEdgeNum(); j++)
+      {
+        set.insert(loops[i]->HalfEdge(j)->From());
+      }
+    }
+
+    for(QSet<BRepPP>::iterator i=set.begin(); i!=set.end(); i++)
+    {
+      (*i)->SetPosition((*i)->Position()+d);
+    }
+  }
+
   void Print()
   {
     qDebug() << "Face @" << this << " mesh=" << mesh << " loops.size()=" << loops.size();
@@ -448,8 +483,63 @@ private:
   QString name;
 
 public:
-  BRepMesh() {qDebug() << "c of BRepMesh @";}
-  ~BRepMesh() { qDebug() << "dc of BRepMesh @"; }
+  BRepFP Clone(BRepFP face)
+  {
+    BRepFP f = AddFace();
+    QMap<BRepPP, BRepPP> map;
+    QMap<BRepHEP, BRepHEP> hemap;
+    for(int i=0; i<face->LoopNum(); i++)
+    {
+      BRepLP loop=face->Loop(i);
+      BRepLP nlp = AddLoop();
+      nlp->SetFace(f);
+      f->AddLoop(nlp);
+      nlp->SetDir(loop->Dir());
+      qDebug() << "iterating points";
+      for(int j=0; j<loop->HalfEdgeNum(); j++)
+      {
+        BRepHEP he = loop->HalfEdge(j);
+        if(map.find(he->From())==map.end())
+        {
+          BRepPP np = AddPoint();
+          np->SetPosition(he->From()->Position());
+          map.insert(he->From(), np);
+        }
+      }
+
+      qDebug() << "making new hes";
+      for(int j=0; j<loop->HalfEdgeNum(); j++)
+      {
+        BRepHEP he = loop->HalfEdge(j);
+        qDebug() << "he="; he->Print();
+        BRepHEP nhe = AddHalfEdge();
+        nhe->SetFrom(map.find(he->From()).value());
+        nhe->SetTo(map.find(he->To()).value());
+        nlp->AddHalfEdge(nhe);
+        nhe->SetLoop(nlp);
+
+        nhe->SetOpposite(he);
+        he->SetOpposite(nhe);
+
+        qDebug() << "nhe=";
+        nhe->Print();
+
+        hemap.insert(he, nhe);
+      }
+
+      for(int j=0; j<loop->HalfEdgeNum(); j++)
+      {
+        BRepHEP he = loop->HalfEdge(j);
+        BRepHEP nhe = hemap.find(he).value();
+        nhe->SetNext(hemap.find(he->Next()).value());
+        nhe->SetPrev(hemap.find(he->Prev()).value());
+      }
+
+      qDebug() << "nlp="; nlp->Print();
+      nlp->Reverse();
+    }
+    return f;
+  }
 
   // get methods
   int FaceNum() { return faceLib.size(); }

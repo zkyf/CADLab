@@ -21,11 +21,11 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
   if(mesh == nullptr || loop == nullptr || point == nullptr) return BRepPP(nullptr);
   BRepPP v2p = mesh->AddPoint();
   v2p->SetPosition(pos);
-  qDebug() << "0";
+//  qDebug() << "0";
   BRepHEP fromp=nullptr, top=nullptr;
   for(int i=0; i<loop->HalfEdgeNum(); i++)
   {
-    qDebug() << "i=" << i;
+//    qDebug() << "i=" << i;
     if(loop->HalfEdge(i)->From() == point)
     {
       fromp = loop->HalfEdge(i);
@@ -37,11 +37,11 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
   {
     top=fromp->Prev();
 
-    qDebug() << "fromp"; fromp->Print();
-    qDebug() << "top"; top->Print();
+//    qDebug() << "fromp"; fromp->Print();
+//    qDebug() << "top"; top->Print();
   }
 
-  qDebug() << "1";
+//  qDebug() << "1";
   BRepHEP he1p = mesh->AddHalfEdge();
   BRepHEP he2p = mesh->AddHalfEdge();
   he1p->SetFrom(point);
@@ -56,10 +56,10 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
   he2p->SetTo(point);
   he2p->SetOpposite(he1p);
   he2p->SetPrev(he1p);
-  qDebug() << "2";
+//  qDebug() << "2";
 
-  qDebug() << "he1p"; he1p->Print();
-  qDebug() << "he2p"; he2p->Print();
+//  qDebug() << "he1p"; he1p->Print();
+//  qDebug() << "he2p"; he2p->Print();
 
   if(fromp!=nullptr)
   {
@@ -68,11 +68,11 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
     he1p->SetPrev(top);
     top->SetNext(he1p);
 
-    qDebug() << "after";
-    qDebug() << "fromp"; fromp->Print();
-    qDebug() << "top"; top->Print();
-    qDebug() << "he1p"; he1p->Print();
-    qDebug() << "he2p"; he2p->Print();
+//    qDebug() << "after";
+//    qDebug() << "fromp"; fromp->Print();
+//    qDebug() << "top"; top->Print();
+//    qDebug() << "he1p"; he1p->Print();
+//    qDebug() << "he2p"; he2p->Print();
   }
   if(loop->HalfEdgeNum()==0)
   {
@@ -80,13 +80,13 @@ BRepPP EulerOp::MEV(BRepMP mesh, BRepLP loop, BRepPP point, QVector3D pos)
     he2p->SetNext(he1p);
   }
 
-  qDebug() << "3";
+//  qDebug() << "3";
   loop->AddHalfEdge(he1p);
   loop->AddHalfEdge(he2p);
   he1p->SetLoop(loop);
   he2p->SetLoop(loop);
 
-  qDebug() << "4";
+//  qDebug() << "4";
 
   return v2p;
 }
@@ -185,7 +185,8 @@ BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
     qDebug() << "Loop:"; loop->Print();
 
     BRepFP tempFace = MEF(mesh, loop, v1, v2);
-    qDebug() << "tempFace:"; tempFace->Loop(0)->Print();
+    qDebug() << "tempFace:"; tempFace->Print();
+    qDebug() << "loop:"; loop->Print();
 
     if(QVector3D::dotProduct(tempFace->Normal(), temp->Normal())<0)
     {
@@ -215,12 +216,13 @@ BRepFP EulerOp::MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2)
     mesh->RemoveLoop(temp);
 
     qDebug() << "loop:"; loop->Print();
+    qDebug() << "tempFace:"; tempFace->Print();
 
     return tempFace;
   }
 }
 
-BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepFP r, BRepHEP he)
+BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepHEP he)
 {
   qDebug() << "KEMR";
   qDebug() << "1";
@@ -262,6 +264,7 @@ BRepLP EulerOp::KEMR(BRepMP mesh, BRepLP loop, BRepFP r, BRepHEP he)
   mesh->RemoveHalfEdge(he2);
 
   qDebug() << "1";
+  BRepFP r = loop->Face();
   r->AddLoop(l2);
   l2->SetFace(r);
   l2->SetDir(true);
@@ -277,4 +280,88 @@ void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
   f2->Loop(0)->Reverse();
   f2->Loop(0)->SetDir(true);
   mesh->RemoveFace(f2);
+}
+
+void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d)
+{
+  qDebug() << "Sweep";
+
+  BRepFP f2 = mesh->Clone(f1);
+  qDebug() << "f2="; f2->Print();
+
+  QVector3D n = -f1->Normal();
+  QSet<BRepPP> set;
+  for(int i=0; i<f1->LoopNum(); i++)
+  {
+    BRepLP loop = f1->Loop(i);
+    for(int j=0; j<loop->HalfEdgeNum(); j++)
+    {
+      set.insert(loop->HalfEdge(j)->From());
+    }
+  }
+
+  for(QSet<BRepPP>::iterator i=set.begin(); i!=set.end(); i++)
+  {
+    (*i)->SetPosition((*i)->Position()+d*n);
+  }
+
+  for(int i=0; i<f1->LoopNum(); i++)
+  {
+    BRepLP loop = f1->Loop(i);
+
+    for(int j=0; j<loop->HalfEdgeNum(); j++)
+    {
+      BRepHEP he = loop->HalfEdge(j);
+      BRepLP nlp = mesh->AddLoop();
+      BRepHEP ophe = he->Opposite();
+
+      BRepHEP he2op = mesh->AddHalfEdge();
+      he2op->SetFrom(he->From());
+      he2op->SetTo(ophe->To());
+      he2op->SetLoop(nlp);
+      nlp->AddHalfEdge(he2op);
+
+      BRepHEP opophe = mesh->AddHalfEdge();
+      opophe->SetFrom(ophe->To());
+      opophe->SetTo(ophe->From());
+      opophe->SetOpposite(ophe);
+      opophe->SetPrev(he2op);
+      opophe->SetLoop(nlp);
+      he2op->SetNext(opophe);
+      nlp->AddHalfEdge(opophe);
+
+      BRepHEP op2he = mesh->AddHalfEdge();
+      op2he->SetFrom(ophe->From());
+      op2he->SetTo(he->To());
+      op2he->SetLoop(nlp);
+      op2he->SetPrev(opophe);
+      opophe->SetNext(op2he);
+      nlp->AddHalfEdge(op2he);
+
+      BRepHEP heop = mesh->AddHalfEdge();
+      heop->SetFrom(he->To());
+      heop->SetTo(he->From());
+      heop->SetNext(he2op);
+      heop->SetPrev(op2he);
+      heop->SetLoop(nlp);
+      heop->SetOpposite(he);
+      he2op->SetPrev(heop);
+      op2he->SetNext(heop);
+      nlp->AddHalfEdge(heop);
+
+      he->SetOpposite(heop);
+      ophe->SetOpposite(opophe);
+
+      BRepFP nf = mesh->AddFace();
+      nf->AddLoop(nlp);
+      nlp->SetFace(nf);
+    }
+
+    for(int j=0; j<loop->HalfEdgeNum(); j++)
+    {
+      BRepHEP he=loop->HalfEdge(j);
+      he->Opposite()->Next()->SetOpposite(he->Prev()->Opposite()->Prev());
+      he->Prev()->Opposite()->Prev()->SetOpposite(he->Opposite()->Next());
+    }
+  }
 }

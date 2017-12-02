@@ -546,10 +546,6 @@ void GLDisplayer::SetSize(int size)
 
 bool GLDisplayer::SetBRepModel(BRepOP object)
 {
-  if(!object)
-  {
-    return false;
-  }
-
   obj = object;
+  return true;
 }

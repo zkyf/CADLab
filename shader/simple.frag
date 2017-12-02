@@ -51,13 +51,13 @@ highp vec4 Specular(highp vec3 position, highp vec3 color)
     highp float dist = sqrt(dot(lightDir, lightDir));
     lightDir = normalize(lightDir);
     highp float intn = dot(lightDir, n) / (1.0 + dist*0.7 + dist*dist*1.8);
-    intn = clamp(intn, 0.1, 1.0);
+    intn = clamp(intn, 0.3, 1.0);
 
     highp vec3 viewDir = cameraPos - pos.xyz;
     viewDir = normalize(viewDir);
     highp vec3 reflectDir = reflect(-lightDir, n);
     reflectDir = normalize(reflectDir);
-    highp float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+    highp float spec = pow(max(dot(viewDir, reflectDir), 0.0), 4.0);
     highp float specularStrength = lightInfo.strength;
     highp float specular = specularStrength * spec;
     return MakeColor(vec4(color*(intn+specular), 1.0), vSpecular);
@@ -81,7 +81,7 @@ void main()
     texColor = texture2D(Texture, vTexCoord);
     if(texColor.a<0.1)
     {
-				discard;
+      discard;
     }
   }
     highp vec4 resultColor = vec4(1.0, 1.0, 1.0, 1.0);
