@@ -24,6 +24,7 @@ public slots:
   void AddCube();
   void AddSweepCube();
   void Clear();
+  void Reset();
 
 private:
   QLayout* layout;
@@ -33,7 +34,7 @@ private:
   QPushButton* button;
   QPushButton* sweepButton;
   QPushButton* clear;
-  QPushButton* Reset;
+  QPushButton* reset;
 };
 
 #endif // MAINWINDOW_H

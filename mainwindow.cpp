@@ -21,6 +21,10 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
   clear->setFixedWidth(50);
   bl->addWidget(clear);
 
+  reset = new QPushButton("Reset");
+  reset->setFixedWidth(50);
+  bl->addWidget(reset);
+
   layout->addItem(bl);
 
   setLayout(layout);
@@ -28,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
   connect(button, &QPushButton::clicked, this, &MainWindow::AddCube);
   connect(sweepButton, &QPushButton::clicked, this, &MainWindow::AddSweepCube);
   connect(clear, &QPushButton::clicked, this, &MainWindow::Clear);
+  connect(reset, &QPushButton::clicked, this, &MainWindow::Reset);
 
   show();
 }
@@ -160,6 +165,12 @@ void MainWindow::AddSweepCube()
 void MainWindow::Clear()
 {
   displayer->SetBRepModel(nullptr);
+  displayer->CameraSetRotation(0, 0, 0, 0);
+  displayer->CameraSetTranslation(0, 0, 0);
+}
+
+void MainWindow::Reset()
+{
   displayer->CameraSetRotation(0, 0, 0, 0);
   displayer->CameraSetTranslation(0, 0, 0);
 }
