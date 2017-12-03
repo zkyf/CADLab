@@ -161,6 +161,7 @@ void GLDisplayer::paintGL()
 	//qDebug() << "Clear";
   glClearColor(0, 0, 0, 0);
   glEnable(GL_STENCIL_TEST);
+//  glEnable(GL_CULL_FACE);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BITS);
 
 	//qDebug() << "bind program and setUniformValue";

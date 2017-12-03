@@ -234,6 +234,41 @@ private:
 
 public:
 
+  bool IsPlane()
+  {
+//    qDebug() << "IsPlane";
+    if(hes.size()<3) return true;
+    QVector3D n = Normal();
+//    qDebug() << "normal=" << n;
+    QVector3D o = hes[0]->From()->Position();
+    for(int i=0; i<hes.size(); i++)
+    {
+      QVector3D d = hes[i]->From()->Position()-o;
+
+//      qDebug() << "#" << i << "d=" << d << " xd=" << QVector3D::crossProduct(d, n).length();
+      if(QVector3D::dotProduct(d, n)>1e-6)
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  float Area()
+  {
+    if(hes.size()<3) return -1;
+    if(!IsPlane()) return -1;
+    QVector3D o = hes[0]->From()->Position();
+    float area = 0;
+    for(int i=0; i<hes.size(); i++)
+    {
+      QVector3D v1 = hes[i]->From()->Position()-o;
+      QVector3D v2 = hes[i]->To()->Position()-o;
+      area+=QVector3D::crossProduct(v2, v1).length()/2;
+    }
+    return fabs(area);
+  }
+
   void Translate(QVector3D d)
   {
     QSet<BRepPP> set;
@@ -386,6 +421,30 @@ private:
   BRepMP mesh;
 
 public:
+  float Area()
+  {
+    qDebug() << "Face Area:";
+    float area = 0;
+    for(int i=0; i<loops.size(); i++)
+    {
+      float da = loops[i]->Area();
+      qDebug() << "loop #" << i << "=" << da;
+      if(da<0) return -1;
+      else
+      {
+        if(loops[i]->Dir())
+        {
+          area-=da;
+        }
+        else
+        {
+          area+=da;
+        }
+      }
+    }
+    return area;
+  }
+
   void Translate(QVector3D d)
   {
     QSet<BRepPP> set;

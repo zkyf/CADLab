@@ -85,6 +85,8 @@ void MainWindow::AddCube()
   }
 
   BRepLP lp = EulerOp::KEMR(mesh, f1234lp, he19);
+//  qDebug() << "after kemr f1234="; f1234lp->Face()->Print();
+  qDebug() << "f1234 area=" << f1234->Area();
 
   BRepLP f9101112lp = f9101112->Loop(0);
   BRepPP v13 = EulerOp::MEV(mesh, f9101112lp, v9, QVector3D(-0.5, -0.5, -4));
