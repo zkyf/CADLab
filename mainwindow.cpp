@@ -160,7 +160,9 @@ void MainWindow::AddSweepCube()
   }
   EulerOp::KEMR(mesh, loop, he39);
 
-  EulerOp::Sweep(mesh, loop->Face(), 3.0, QVector3D(0, 0, -1));
+  BRepFP f2 = EulerOp::Sweep(mesh, loop->Face(), 3.0, QVector3D(0, -0.5, -3));
+  BRepFP f3 = EulerOp::Sweep(mesh, f2, 3.0, QVector3D(0, 0.5, -3));
+  mesh->RemoveFace(f2);
   displayer->SetBRepModel(object);
 }
 

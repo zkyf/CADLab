@@ -282,7 +282,7 @@ void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
   mesh->RemoveFace(f2);
 }
 
-void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n)
+BRepFP EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n)
 {
   qDebug() << "Sweep";
 
@@ -291,9 +291,9 @@ void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n)
 
   n=n.normalized();
   QSet<BRepPP> set;
-  for(int i=0; i<f1->LoopNum(); i++)
+  for(int i=0; i<f2->LoopNum(); i++)
   {
-    BRepLP loop = f1->Loop(i);
+    BRepLP loop = f2->Loop(i);
     for(int j=0; j<loop->HalfEdgeNum(); j++)
     {
       set.insert(loop->HalfEdge(j)->From());
@@ -305,9 +305,9 @@ void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n)
     (*i)->SetPosition((*i)->Position()+d*n);
   }
 
-  for(int i=0; i<f1->LoopNum(); i++)
+  for(int i=0; i<f2->LoopNum(); i++)
   {
-    BRepLP loop = f1->Loop(i);
+    BRepLP loop = f2->Loop(i);
 
     for(int j=0; j<loop->HalfEdgeNum(); j++)
     {
@@ -364,4 +364,6 @@ void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n)
       he->Prev()->Opposite()->Prev()->SetOpposite(he->Opposite()->Next());
     }
   }
+
+  return f2;
 }
