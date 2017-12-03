@@ -12,7 +12,7 @@ public:
   static BRepFP MEF(BRepMP mesh, BRepLP &loop, BRepPP v1, BRepPP v2);
   static BRepLP KEMR(BRepMP mesh, BRepLP loop, BRepHEP he);
   static void KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2);
-  static void Sweep(BRepMP mesh, BRepFP f1, float d);
+  static void Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n);
 };
 
 #endif // EULEROP_H

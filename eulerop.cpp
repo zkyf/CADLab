@@ -282,14 +282,14 @@ void EulerOp::KFMRH(BRepMP mesh, BRepFP f1, BRepFP f2)
   mesh->RemoveFace(f2);
 }
 
-void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d)
+void EulerOp::Sweep(BRepMP mesh, BRepFP f1, float d, QVector3D n)
 {
   qDebug() << "Sweep";
 
   BRepFP f2 = mesh->Clone(f1);
   qDebug() << "f2="; f2->Print();
 
-  QVector3D n = -f1->Normal();
+  n=n.normalized();
   QSet<BRepPP> set;
   for(int i=0; i<f1->LoopNum(); i++)
   {

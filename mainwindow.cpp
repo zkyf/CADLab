@@ -121,10 +121,10 @@ void MainWindow::AddSweepCube()
   mesh->RemoveFace(f1234);
 
   BRepPP v5 = EulerOp::MEV(mesh, loop, v1, QVector3D(-0.9, -0.9, -2));
-  BRepPP v6 = EulerOp::MEV(mesh, loop, v5, QVector3D(-0.9, -0.1, -2));
-  BRepPP v7 = EulerOp::MEV(mesh, loop, v6, QVector3D(-0.1, -0.1, -2));
+  BRepPP v6 = EulerOp::MEV(mesh, loop, v5, QVector3D(-0.9, 0.1, -2));
+  BRepPP v7 = EulerOp::MEV(mesh, loop, v6, QVector3D(0.1, 0.1, -2));
   BRepPP v7_5 = EulerOp::MEV(mesh, loop, v7, QVector3D(0.3, -0.5, -2));
-  BRepPP v8 = EulerOp::MEV(mesh, loop, v7_5, QVector3D(-0.1, -0.9, -2));
+  BRepPP v8 = EulerOp::MEV(mesh, loop, v7_5, QVector3D(0.1, -0.9, -2));
 
   BRepFP f5678 = EulerOp::MEF(mesh, loop, v5, v8);
   mesh->RemoveFace(f5678);
@@ -142,8 +142,8 @@ void MainWindow::AddSweepCube()
   EulerOp::KEMR(mesh, loop, he15);
 
   BRepPP v9 = EulerOp::MEV(mesh, loop, v3,   QVector3D(0.9, 0.9, -2));
-  BRepPP v10 = EulerOp::MEV(mesh, loop, v9,  QVector3D(0.9, 0.1, -2));
-  BRepPP v11 = EulerOp::MEV(mesh, loop, v10, QVector3D(0.1, 0.1, -2));
+  BRepPP v10 = EulerOp::MEV(mesh, loop, v9,  QVector3D(0.9, -0.1, -2));
+  BRepPP v11 = EulerOp::MEV(mesh, loop, v10, QVector3D(-0.1, -0.1, -2));
 //  BRepPP v12 = EulerOp::MEV(mesh, loop, v11, QVector3D(0.2, 0.8, -2));
   BRepFP f9101112 = EulerOp::MEF(mesh, loop, v9, v11);
   mesh->RemoveFace(f9101112);
@@ -158,7 +158,7 @@ void MainWindow::AddSweepCube()
   }
   EulerOp::KEMR(mesh, loop, he39);
 
-  EulerOp::Sweep(mesh, loop->Face(), 3.0);
+  EulerOp::Sweep(mesh, loop->Face(), 3.0, QVector3D(0, 0, -1));
   displayer->SetBRepModel(object);
 }
 
