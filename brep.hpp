@@ -234,6 +234,18 @@ private:
 
 public:
 
+  BRepHEP HEFromV1ToV2(BRepPP v1, BRepPP v2)
+  {
+    for(int i=0; i<hes.size(); i++)
+    {
+      if(hes[i]->From()==v1 && hes[i]->To()==v2)
+      {
+        return hes[i];
+      }
+    }
+    return nullptr;
+  }
+
   bool IsPlane()
   {
 //    qDebug() << "IsPlane";
