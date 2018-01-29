@@ -198,7 +198,7 @@ void GLDisplayer::paintGL()
 		m_program->setUniformValue("rotation", m_transform.rotation().toRotationMatrix());
 		m_program->setUniformValue("cameraPos", m_camera.translation());
 		m_program->setUniformValue("texture", 0);
-    m_program->setUniformValue("mode", 2);
+    m_program->setUniformValue("mode", 0);
     //
 
     static bool init = true;
@@ -228,6 +228,7 @@ void GLDisplayer::paintGL()
         {
 //          qDebug() << "fid=" << fid << mesh->FaceNum();
           BRepFP face = mesh->Face(fid);
+          QString ft = face->ext[FaceType].type;
           if(!face->IsPlane()) continue;
           // draw stencil buffer first
 
@@ -295,12 +296,48 @@ void GLDisplayer::paintGL()
               vertData.push_back(pos.z());
 
               // ambient
+//              if(ft=="Face")
+//              {
+//                vertData.push_back(1); vertData.push_back(0); vertData.push_back(0);
+//              }
+//              else if(ft=="Edge")
+//              {
+//                vertData.push_back(0); vertData.push_back(1); vertData.push_back(0);
+//              }
+//              else
+//              {
+//                vertData.push_back(0); vertData.push_back(0); vertData.push_back(1);
+//              }
               vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // diffuse
+//              if(ft=="Face")
+//              {
+//                vertData.push_back(1); vertData.push_back(0); vertData.push_back(0);
+//              }
+//              else if(ft=="Edge")
+//              {
+//                vertData.push_back(0); vertData.push_back(1); vertData.push_back(0);
+//              }
+//              else
+//              {
+//                vertData.push_back(0); vertData.push_back(0); vertData.push_back(1);
+//              }
               vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // specular
+//              if(ft=="Face")
+//              {
+//                vertData.push_back(1); vertData.push_back(0); vertData.push_back(0);
+//              }
+//              else if(ft=="Edge")
+//              {
+//                vertData.push_back(0); vertData.push_back(1); vertData.push_back(0);
+//              }
+//              else
+//              {
+//                vertData.push_back(0); vertData.push_back(0); vertData.push_back(1);
+//              }
               vertData.push_back(1); vertData.push_back(1); vertData.push_back(1);
 
               // normal

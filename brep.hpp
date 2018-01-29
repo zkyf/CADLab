@@ -56,6 +56,8 @@ class BRepRenderData;
 #define QSP QExplicitlySharedDataPointer
 #endif
 
+const QString FaceType = "_render_face_type";
+
 //typedef QSP<BRepPoint>      BRepPP;
 //typedef QSP<BRepEdge>       BRepEP;
 //typedef QSP<BRepHalfEdge>   BRepHEP;
@@ -95,10 +97,56 @@ typedef _QLinkedList<BRepTP>::iterator  TPIte;
 typedef _QLinkedList<BRepRP>::iterator  RDPIte;
 
 // class definiations
+
+typedef void* VoidP;
+typedef void(*_Destructor)(VoidP p);
+
+struct ExtraInfo
+{
+  QString type;
+  VoidP p;
+
+  ExtraInfo(VoidP _p=nullptr, QString _t="void", bool _nd=true, _Destructor _d=nullptr) : type(_t), p(_p), nd(_nd)
+  {
+    if(_nd)
+    {
+      if(_d==nullptr)
+      {
+        if(_t=="int") _d=&dcint;
+        if(_t=="float") _d=&dcfloat;
+        if(_t=="double") _d=&dcdouble;
+        if(_t=="QVector3D") _d=&dcQVector3D;
+      }
+      else
+      {
+        d=_d;
+      }
+    }
+    else
+    {
+      d=nullptr;
+    }
+  }
+
+  ~ExtraInfo()
+  {
+  }
+
+private:
+  _Destructor d;
+  bool nd;
+
+  static void dcint(VoidP p) { delete (int*) p; }
+  static void dcfloat(VoidP p) { delete (float*) p; }
+  static void dcdouble(VoidP p) { delete (double*) p; }
+  static void dcQVector3D(VoidP p) { delete (QVector3D*) p; }
+};
+
 class BRepItem       : public QSharedData
 {
 public:
   bool valid;
+  QMap<QString, ExtraInfo> ext;
 
 public:
   BRepItem(bool _valid=false) : valid(_valid) {}
@@ -181,6 +229,8 @@ private:
   BRepLP loop;
 
 public:
+  BRepHalfEdge() : from(nullptr), to(nullptr), prev(nullptr), next(nullptr), opposite(nullptr), loop(nullptr) {}
+
   void Reverse()
   {
     BRepPP t = from;
@@ -304,8 +354,9 @@ public:
 
   void Print()
   {
+    qDebug() << "Loop @" << this << " hes.size()=" << hes.size() << " face=" << face << " isPlane=" << IsPlane();
+    if(hes.size()==0) return;
     BRepHEP he = hes[0];
-    qDebug() << "Loop @" << this << " hes.size()=" << hes.size() << " face=" << face;
     do
     {
       he->Print();
@@ -433,6 +484,11 @@ private:
   BRepMP mesh;
 
 public:
+  void Clear()
+  {
+    loops.clear();
+  }
+
   float Area()
   {
     qDebug() << "Face Area:";
@@ -476,7 +532,7 @@ public:
 
   void Print()
   {
-    qDebug() << "Face @" << this << " mesh=" << mesh << " loops.size()=" << loops.size();
+    qDebug() << "Face @" << this << " mesh=" << mesh << " loops.size()=" << loops.size() << " type=" << ext[FaceType].type;
     for(int i=0; i<loops.size(); i++)
     {
       qDebug() << "loop #" << i << "/" << loops.size();
@@ -554,6 +610,108 @@ private:
   QString name;
 
 public:
+  void SolveNonplaneFace(BRepFP f)
+  {
+    if(f->IsPlane()) return;
+//    qDebug() << endl;
+//    qDebug() << "SolveNonplaneFace";
+    BRepHEP ll, lr;
+    BRepLP looo;
+//    f->Print();
+    for(int lid=0; lid<f->LoopNum(); lid++)
+    {
+      BRepLP loop=f->Loop(lid);
+      BRepHEP hes = loop->HalfEdge(0);
+      BRepHEP het = hes->Prev();
+      int hid=0;
+      BRepHEP hen = hes->Next();
+      for(BRepHEP he=hes->Next(); he!=het; he=hen)
+      {
+        hen=he->Next();
+        qDebug() << endl;
+//        qDebug() << "hid=" << hid;
+        hid++;
+        BRepLP lp=AddLoop();
+        BRepHEP l;
+        BRepHEP r;
+        if(he==hes->Next())
+        {
+          lp->AddHalfEdge(hes);
+          looo=lp;
+          l=hes;
+        }
+        else
+        {
+          BRepFP ff = AddFace();
+          ff->ext[FaceType]=f->ext[FaceType];
+          ff->AddLoop(lp);
+          l=AddHalfEdge();
+          l->SetFrom(hes->From());
+          l->SetTo(he->From());
+          l->SetNext(he);
+          l->SetOpposite(lr);
+          lr->SetOpposite(l);
+          lp->AddHalfEdge(l);
+
+          he->SetPrev(l);
+        }
+
+        lp->AddHalfEdge(he);
+
+        if(he->Next()==het)
+        {
+          lp->AddHalfEdge(het);
+          r=het;
+        }
+        else
+        {
+          r=AddHalfEdge();
+          r->SetFrom(he->To());
+          r->SetTo(hes->From());
+          lp->AddHalfEdge(r);
+        }
+        he->SetNext(r);
+        r->SetPrev(he);
+        r->SetNext(l);
+        l->SetPrev(r);
+
+//        l->Print();
+//        he->Print();
+//        r->Print();
+
+        ll=l;
+        lr=r;
+      }
+    }
+    f->Clear();
+    f->AddLoop(looo);
+  }
+
+  bool Adjacent(BRepFP a, BRepFP b)
+  {
+    for(int lid=0; lid<a->LoopNum(); lid++)
+    {
+      BRepLP li=a->Loop(lid);
+      for(int hid=0; hid<li->HalfEdgeNum(); hid++)
+      {
+        BRepHEP hei=li->HalfEdge(hid);
+
+        for(int ljd=0; ljd<b->LoopNum(); ljd++)
+        {
+          BRepLP lj=b->Loop(ljd);
+          for(int hjd=0; hjd<lj->HalfEdgeNum(); hjd++)
+          {
+            BRepHEP hej=lj->HalfEdge(hjd);
+
+            if(hei->From()==hej->To() && hei->To()==hej->From()) return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
   BRepFP Clone(BRepFP face)
   {
     BRepFP f = AddFace();

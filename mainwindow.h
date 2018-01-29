@@ -22,19 +22,25 @@ signals:
 
 public slots:
   void AddCube();
+  void AddHoleCube();
   void AddSweepCube();
   void Clear();
   void Reset();
+  void Subdivide();
 
 private:
   QLayout* layout;
   GLDisplayer* displayer;
 
   QLayout* bl;
-  QPushButton* button;
+  QPushButton* cube;
+  QPushButton* holecube;
   QPushButton* sweepButton;
   QPushButton* clear;
   QPushButton* reset;
+  QPushButton* subd;
+
+  BRepOP current;
 };
 
 #endif // MAINWINDOW_H

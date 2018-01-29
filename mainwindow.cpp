@@ -2,6 +2,8 @@
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
+  current = nullptr;
+
   layout = new QHBoxLayout();
 
   displayer = new GLDisplayer();
@@ -9,9 +11,13 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
   bl = new QVBoxLayout();
 
-  button = new QPushButton("AddCube");
-  button->setFixedWidth(50);
-  bl->addWidget(button);
+  cube = new QPushButton("AddCube");
+  cube->setFixedWidth(50);
+  bl->addWidget(cube);
+
+  holecube = new QPushButton("AddHoleCube");
+  holecube->setFixedWidth(50);
+  bl->addWidget(holecube);
 
   sweepButton = new QPushButton("AddSweep");
   sweepButton->setFixedWidth(50);
@@ -25,19 +31,82 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
   reset->setFixedWidth(50);
   bl->addWidget(reset);
 
+  subd = new QPushButton("Subdivide");
+  subd->setFixedWidth(50);
+  bl->addWidget(subd);
+
   layout->addItem(bl);
 
   setLayout(layout);
 
-  connect(button, &QPushButton::clicked, this, &MainWindow::AddCube);
+  connect(cube, &QPushButton::clicked, this, &MainWindow::AddCube);
+  connect(holecube, &QPushButton::clicked, this, &MainWindow::AddHoleCube);
   connect(sweepButton, &QPushButton::clicked, this, &MainWindow::AddSweepCube);
   connect(clear, &QPushButton::clicked, this, &MainWindow::Clear);
   connect(reset, &QPushButton::clicked, this, &MainWindow::Reset);
+  connect(subd, &QPushButton::clicked, this, &MainWindow::Subdivide);
 
   show();
 }
 
+void MainWindow::Subdivide()
+{
+  BRepOP object;
+  object = new BRepObject;
+  EulerOp::Subdivide(current, object);
+
+  displayer->SetBRepModel(object);
+  current=object;
+
+//  qDebug() << endl;
+//  qDebug() << "======================";
+//  for(int mid=0; mid<object->MeshNum(); mid++)
+//  {
+//    BRepMP mesh = object->Mesh(mid);
+//    qDebug() << "mesh #" << mid;
+//    qDebug() << "faceNum=" << mesh->FaceNum() << " halfEdgeNum=" << mesh->HalfEdgeNum() << " pointNum=" << mesh->PointNum();
+//    for(int fid=0; fid<mesh->FaceNum(); fid++)
+//    {
+//      BRepFP face = mesh->Face(fid);
+//      qDebug() << "face #" << fid;
+//      face->Print();
+//      qDebug() << endl;
+//    }
+//  }
+}
+
 void MainWindow::AddCube()
+{
+  BRepOP object;
+  object = new BRepObject;
+  EulerOp::MVFS(object, QVector3D(-1, -1, -2));
+
+  BRepMP mesh = object->Mesh(0);
+  BRepLP loop = mesh->Loop(0);
+  BRepPP v1 = mesh->Point(0);
+  BRepPP v2 = EulerOp::MEV(mesh, loop, v1, QVector3D(-1, 1, -2));
+  BRepPP v3 = EulerOp::MEV(mesh, loop, v2, QVector3D(1, 1, -2));
+  BRepPP v4 = EulerOp::MEV(mesh, loop, v3, QVector3D(1, -1, -2));
+  BRepFP f1234 = EulerOp::MEF(mesh, loop, v1, v4);
+
+  BRepPP v5 = EulerOp::MEV(mesh, loop, v1, QVector3D(-1, -1, -4));
+  BRepPP v6 = EulerOp::MEV(mesh, loop, v2, QVector3D(-1, 1, -4));
+  BRepFP f1265 = EulerOp::MEF(mesh, loop, v5, v6);
+
+  BRepPP v7 = EulerOp::MEV(mesh, loop, v3, QVector3D(1, 1, -4));
+  BRepPP v8 = EulerOp::MEV(mesh, loop, v4, QVector3D(1, -1, -4));
+  BRepFP f2376 = EulerOp::MEF(mesh, loop, v7, v6);
+
+  BRepFP f3487 = EulerOp::MEF(mesh, loop, v8, v7);
+
+  EulerOp::MEF(mesh, loop, v8, v5);
+  BRepFP f5678 = loop->Face();
+
+  displayer->SetBRepModel(object);
+  current=object;
+}
+
+void MainWindow::AddHoleCube()
 {
   BRepOP object;
   object = new BRepObject;
@@ -137,7 +206,7 @@ void MainWindow::AddSweepCube()
 
   BRepFP f2 = EulerOp::Sweep(mesh, loop->Face(), 3.0, QVector3D(0, -0.5, -3));
 //  BRepFP f3 = EulerOp::Sweep(mesh, f2, 3.0, QVector3D(0, 0.5, -3));
-  mesh->RemoveFace(f2);
+//  mesh->RemoveFace(f2);
   displayer->SetBRepModel(object);
 }
 
